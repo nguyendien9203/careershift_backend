@@ -1,3 +1,5 @@
+const mongoose = require('mongoose');
+
 const OfferSchema = new mongoose.Schema({
     application_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Recruitment', required: true },
     base_salary: Number,

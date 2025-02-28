@@ -1,3 +1,6 @@
+
+const mongoose = require('mongoose');
+
 const JobSchema = new mongoose.Schema({
     title: String,
     platform: String,
