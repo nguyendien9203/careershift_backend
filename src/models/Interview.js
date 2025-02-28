@@ -14,14 +14,14 @@ const InterviewSchema = new mongoose.Schema(
     },
     stages: [
       {
-        round: { type: Number, required: true }, // Vòng phỏng vấn
+        round: { type: Number, required: true },
         interviewer_ids: [
           { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-        ], // Người phỏng vấn
+        ],
         type: {
           type: String,
           required: true,
-          enum: ["Technical", "HR", "Managerial", "Other"], // Loại phỏng vấn
+          enum: ["Technical", "HR", "Managerial", "Other"],
         },
         status: {
           type: String,
@@ -37,7 +37,7 @@ const InterviewSchema = new mongoose.Schema(
             }, // ID người đánh giá
             score: {
               type: Object,
-              default: {}, // Điểm đánh giá (có thể mở rộng)
+              default: {},
             },
             comments: {
               type: String,
@@ -52,8 +52,8 @@ const InterviewSchema = new mongoose.Schema(
       enum: ["In Progress", "Passed", "Failed"],
       default: "In Progress",
     },
-    date: { type: Date, required: true }, // Ngày phỏng vấn
-    time: { type: String, required: true }, // Thời gian phỏng vấn
+    date: { type: Date, required: true }, 
+    time: { type: String, required: true }, 
     mode: {
       type: String,
       enum: ["Online", "Offline"],
@@ -68,7 +68,7 @@ const InterviewSchema = new mongoose.Schema(
       default: "", // Link Google Meet (nếu online)
     },
   },
-  { timestamps: true } // Tự động thêm `createdAt` và `updatedAt`
+  { timestamps: true } 
 );
 
 module.exports = mongoose.model("Interview", InterviewSchema);
