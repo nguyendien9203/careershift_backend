@@ -234,7 +234,19 @@ const updateInterview = async (req, res) => {
     if (mode) interview.mode = mode;
 
     // Xử lý điều kiện mode (Offline hoặc Online)
-  
+   
+    // Kiểm tra trạng thái các vòng phỏng vấn (stages)
+    let allPassed = interview.stages.every(stage => stage.status === "Passed");
+    let anyFailed = interview.stages.some(stage => stage.status === "Failed");
+
+    if (anyFailed) {
+      interview.final_status = "Failed";
+    } else if (allPassed) {
+      interview.final_status = "Passed";
+    } else {
+      interview.final_status = "In Progress"; // Giữ nguyên nếu chưa đủ thông tin
+    }
+
     // Lưu cập nhật vào database
     await interview.save();
 
