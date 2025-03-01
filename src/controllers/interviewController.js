@@ -180,5 +180,43 @@ const getInterviewById = async (req, res) => {
   }
 };
   
+
+
+
+//Delete lich phong van
+
+const deleteInterview = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Kiểm tra ID hợp lệ
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "ID không hợp lệ" });
+    }
+
+    // Tìm lịch phỏng vấn
+    const interview = await Interview.findById(id);
+    if (!interview) {
+      return res.status(404).json({ success: false, message: "Lịch phỏng vấn không tồn tại" });
+    }
+
+    // Xóa lịch phỏng vấn
+    await Interview.findByIdAndDelete(id);
+
+    res.status(200).json({ success: true, message: "Xóa lịch phỏng vấn thành công" });
+  } catch (error) {
+    console.error("Lỗi khi xóa lịch phỏng vấn:", error);
+    res.status(500).json({ success: false, message: "Lỗi server", error });
+  }
+};
+
+
+
+
+
+
+
+
+
   
-module.exports = { getInterviews, getInterviewById,createInterview,updateInterviewStage };
+module.exports = { getInterviews, getInterviewById,createInterview,updateInterviewStage, deleteInterview};
