@@ -213,10 +213,48 @@ const deleteInterview = async (req, res) => {
 
 
 
+// Update interviews
+
+const updateInterview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date, time, mode, address, google_meet_link } = req.body;
+
+  
+
+    // Tìm lịch phỏng vấn
+    const interview = await Interview.findById(id);
+    if (!interview) {
+      return res.status(404).json({ success: false, message: "Lịch phỏng vấn không tồn tại" });
+    }
+
+    // Cập nhật thông tin mới nếu có
+    if (date) interview.date = date;
+    if (time) interview.time = time;
+    if (mode) interview.mode = mode;
+
+    // Xử lý điều kiện mode (Offline hoặc Online)
+  
+    // Lưu cập nhật vào database
+    await interview.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Cập nhật lịch phỏng vấn thành công",
+      interview,
+    });
+  } catch (error) {
+    console.error("Lỗi khi cập nhật lịch phỏng vấn:", error);
+    res.status(500).json({ success: false, message: "Lỗi server", error });
+  }
+};
+
+
+
 
 
 
 
 
   
-module.exports = { getInterviews, getInterviewById,createInterview,updateInterviewStage, deleteInterview};
+module.exports = { getInterviews, getInterviewById,createInterview,updateInterviewStage, deleteInterview,updateInterview};

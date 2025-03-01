@@ -1,5 +1,5 @@
 const express = require("express");
-const { getInterviews,getInterviewById,createInterview,updateInterviewStage, deleteInterview } = require("../controllers/interviewController");
+const { getInterviews,getInterviewById,createInterview,updateInterviewStage, deleteInterview,updateInterview } = require("../controllers/interviewController");
 
 const router = express.Router();
 
@@ -16,4 +16,7 @@ router.put("/interviews/update-stage", updateInterviewStage);
 
 // Xóa lịch phỏng vấn
 router.delete("/interviews/:id", deleteInterview);
+
+// Cập nhật lịch phỏng vấn
+router.put("/UpdateInterviews/:id", updateInterview);
 module.exports = router;
