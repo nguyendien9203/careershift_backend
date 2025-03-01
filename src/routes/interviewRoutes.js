@@ -1,5 +1,5 @@
 const express = require("express");
-const { getInterviews,getInterviewById,createInterview } = require("../controllers/interviewController");
+const { getInterviews,getInterviewById,createInterview,updateInterviewStage } = require("../controllers/interviewController");
 
 const router = express.Router();
 
@@ -10,4 +10,7 @@ router.get("/interviews/:id", getInterviewById);
 
 // Route tạo lịch phỏng vấn
 router.post("/createInterviews", createInterview);
+
+// Route cập nhật kết quả từng vòng phỏng vấn
+router.put("/interviews/update-stage", updateInterviewStage);
 module.exports = router;
