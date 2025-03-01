@@ -77,7 +77,14 @@ const getInterviewById = async (req, res) => {
           }
         }
   
-      
+        // Kiểm tra `interviewer_ids` có tồn tại trong hệ thống không
+        const existingInterviewers = await User.find({ _id: { $in: stage.interviewer_ids } });
+        if (existingInterviewers.length !== stage.interviewer_ids.length) {
+          return res.status(400).json({
+            success: false,
+            message: "Một hoặc nhiều interviewer_ids không tồn tại trong hệ thống",
+          });
+        }
   
         // Thêm mảng `evaluations` rỗng cho từng stage
         stage.evaluations = [];
