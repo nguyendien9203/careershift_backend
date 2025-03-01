@@ -220,7 +220,10 @@ const updateInterview = async (req, res) => {
     const { id } = req.params;
     const { date, time, mode, address, google_meet_link } = req.body;
 
-  
+    // Kiểm tra ID hợp lệ
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "ID không hợp lệ" });
+    }
 
     // Tìm lịch phỏng vấn
     const interview = await Interview.findById(id);
