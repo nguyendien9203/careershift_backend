@@ -13,7 +13,7 @@ const sendInterviewEmail = async (candidateEmail, candidateName, jobTitle, date,
       
 
     const mailOptions = {
-      from:"hieudevhouse@gmail.com" ,
+      from:"hieunmhe170295@fpt.edu.vn" ,
       to: "nguyenminhhieu2003hd@gmail.com",
       subject: `Thư mời phỏng vấn - ${jobTitle}`,
       html: `
