@@ -25,7 +25,7 @@ const InterviewSchema = new mongoose.Schema(
         },
         status: {
           type: String,
-          enum: ["Scheduled", "Passed", "Failed", "Rescheduled", "Cancelled"],
+          enum: ["Scheduled", "Rescheduled", "Cancelled"],
           default: "Scheduled",
         },
         evaluations: [

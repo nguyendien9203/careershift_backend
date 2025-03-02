@@ -1,7 +1,7 @@
 const Interview = require("../models/Interview");
 const Candidate = require("../models/Candidate");
 const User = require("../models/User"); // Import model User
-
+const { sendInterviewEmail } = require("./interviewsEmailController");
 const Job = require("../models/Job");
 const mongoose = require("mongoose");
 // Lấy danh sách lịch phỏng vấn (Get ALL)
@@ -41,12 +41,10 @@ const getInterviewById = async (req, res) => {
     try {
       const { candidate_id, job_id, stages, date, time, mode, address, google_meet_link } = req.body;
   
-      // Kiểm tra ID hợp lệ
       if (!mongoose.Types.ObjectId.isValid(candidate_id) || !mongoose.Types.ObjectId.isValid(job_id)) {
         return res.status(400).json({ success: false, message: "ID không hợp lệ" });
       }
   
-      // Kiểm tra & xử lý `stages`
       let parsedStages;
       try {
         parsedStages = typeof stages === "string" ? JSON.parse(stages) : stages;
@@ -58,39 +56,25 @@ const getInterviewById = async (req, res) => {
         return res.status(400).json({ success: false, message: "Stages phải là một mảng object" });
       }
   
-      // Kiểm tra từng stage
       for (let stage of parsedStages) {
         if (!stage.round || !stage.type || !stage.status || !Array.isArray(stage.interviewer_ids)) {
-          return res.status(400).json({
-            success: false,
-            message: "Mỗi stage cần có round, type, status và interviewer_ids là mảng",
-          });
+          return res.status(400).json({ success: false, message: "Stage không hợp lệ" });
         }
   
-        // Kiểm tra `interviewer_ids` có hợp lệ không
         for (let interviewer_id of stage.interviewer_ids) {
           if (!mongoose.Types.ObjectId.isValid(interviewer_id)) {
-            return res.status(400).json({
-              success: false,
-              message: `ID của người phỏng vấn (${interviewer_id}) không hợp lệ`,
-            });
+            return res.status(400).json({ success: false, message: `ID người phỏng vấn ${interviewer_id} không hợp lệ` });
           }
         }
   
-        // Kiểm tra `interviewer_ids` có tồn tại trong hệ thống không
         const existingInterviewers = await User.find({ _id: { $in: stage.interviewer_ids } });
         if (existingInterviewers.length !== stage.interviewer_ids.length) {
-          return res.status(400).json({
-            success: false,
-            message: "Một hoặc nhiều interviewer_ids không tồn tại trong hệ thống",
-          });
+          return res.status(400).json({ success: false, message: "Một hoặc nhiều interviewer_ids không tồn tại" });
         }
   
-        // Thêm mảng `evaluations` rỗng cho từng stage
         stage.evaluations = [];
       }
   
-      // Tạo tài liệu phỏng vấn mới
       const newInterview = new Interview({
         candidate_id,
         job_id,
@@ -99,23 +83,26 @@ const getInterviewById = async (req, res) => {
         date,
         time,
         mode,
-        address: mode === "Offline" ? address : "", 
-        google_meet_link: mode === "Online" ? google_meet_link : "", 
+        address: mode === "Offline" ? address : "",
+        google_meet_link: mode === "Online" ? google_meet_link : "",
       });
   
       await newInterview.save();
   
-      res.status(201).json({
-        success: true,
-        message: "Tạo lịch phỏng vấn thành công",
-        interview: newInterview,
-      });
+      // Gửi email sau khi tạo phỏng vấn thành công
+      const candidate = await Candidate.findById(candidate_id);
+      const job = await Job.findById(job_id);
+  
+      if (candidate && job) {
+        sendInterviewEmail(candidate.email, candidate.name, job.title, date, time, mode, google_meet_link, address);
+      }
+  
+      res.status(201).json({ success: true, message: "Tạo lịch phỏng vấn thành công", interview: newInterview });
     } catch (error) {
       console.error("Lỗi khi tạo lịch phỏng vấn:", error);
       res.status(500).json({ success: false, message: "Lỗi server", error });
     }
   };
-  
 
 
 
