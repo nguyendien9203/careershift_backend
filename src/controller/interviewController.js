@@ -4,22 +4,20 @@ const Candidate = require("../models/Candidate");
 const Recruitment = require("../models/Recruitment");
 const Job = require("../models/Job");
 
-exports.getCandidatepassedinterview = async (req, res) => {
+exports.fetchCandidatesPassedInterview = async () => {
     try {
         const completedInterviews = await Interview.find({ finalStatus: "COMPLETED" })
             .select("recruitmentId");
 
         const recruitmentIds = completedInterviews.map((interview) => interview.recruitmentId);
-
         if (recruitmentIds.length === 0) {
             console.log("Không có ứng viên nào có finalStatus là COMPLETED.");
-            return res.status(200).json({ message: "Không có ứng viên nào vượt qua phỏng vấn", emails: [] });
+            return [];
         }
 
         const recruitments = await Recruitment.find({ _id: { $in: recruitmentIds } }).select("candidateId jobJd");
-
         if (!recruitments.length) {
-            return res.status(200).json({ message: "Không tìm thấy Recruitment tương ứng" });
+            return [];
         }
 
         const candidateIds = recruitments.map((r) => r.candidateId);
@@ -45,14 +43,20 @@ exports.getCandidatepassedinterview = async (req, res) => {
             };
         });
 
+        return result;
+    } catch (error) {
+        console.error("Lỗi khi lấy danh sách ứng viên:", error);
+        throw error;
+    }
+};
+exports.getCandidatepassedinterview = async (req, res) => {
+    try {
+        const candidates = await exports.fetchCandidatesPassedInterview();
         return res.status(200).json({
             message: "Danh sách ứng viên đã vượt qua phỏng vấn",
-            candidates: result
+            candidates
         });
-
-
     } catch (error) {
-        console.error("Lỗi khi lấy email:", error);
         return res.status(500).json({ message: "Lỗi server", error: error.message });
     }
 };

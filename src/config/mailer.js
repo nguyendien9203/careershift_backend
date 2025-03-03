@@ -9,19 +9,20 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const sendMail = async (to, subject, text) => {
-    try {
-      const info = await transporter.sendMail({
-        from: `"Your App" <${process.env.EMAIL_USER}>`,
-        to,
-        subject,
-        text,
-      });
-      console.log('Email sent:', info.messageId);
-    } catch (error) {
-      console.error('Error sending email:', error);
-      throw new Error('Email sending failed'); // Thêm dòng này để lỗi được bắt đúng cách
-    }
-  };
+const sendEmail = async (candidate) => {
+  try {
+      const mailOptions = {
+          from: process.env.EMAIL_USER,
+          to: candidate.email,
+          subject: "Thông báo trúng tuyển",
+          text: `Xin chào ${candidate.name},\n\nChúc mừng bạn đã trúng tuyển vào vị trí ${candidate.job}!\nVui lòng liên hệ lại với chúng tôi để hoàn tất thủ tục.\n\nTrân trọng,\nCông ty ABC`
+      };
 
-module.exports = sendMail;
+      await transporter.sendMail(mailOptions);
+      console.log(`✅ Email đã gửi đến: ${candidate.email}`);
+  } catch (error) {
+      console.error(`❌ Lỗi khi gửi email đến ${candidate.email}:`, error);
+  }
+};
+
+module.exports = sendEmail;
