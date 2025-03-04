@@ -5,8 +5,6 @@ const bcrypt = require("bcryptjs");
 const UserStatus = require("../utils");
 require("dotenv").config();
 
-const lockTime = process.env.LOCK_TIME;
-
 passport.use(
   new LocalStrategy(
     { usernameField: "email" },
@@ -26,7 +24,7 @@ passport.use(
               "Tài khoản chưa được xác thực. Vui lòng kiểm tra email để nhận mã OTP.",
           });
 
-        if (user.status === UserStatus.LOCKED && !user.locked_until) {
+        if (user.status === UserStatus.LOCKED && !user.lockedUntil) {
           return done(null, false, {
             status: 403,
             message: "Tài khoản đã bị vô hiệu hóa",
@@ -52,7 +50,7 @@ passport.use(
 
           if (user.failedLoginAttempts >= 5) {
             user.status = UserStatus.LOCKED;
-            user.lockedUntil = new Date(Date.now() + lockTime);
+            user.lockedUntil = new Date(Date.now() + 15 * 60 * 1000);
           }
 
           await user.save();
