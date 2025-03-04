@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const Role = require("./role.model");
 
 const userSchema = new mongoose.Schema(
   {
@@ -21,15 +22,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       minLength: [6, "Password must have at least 6 characters"],
     },
-    oauthProvider: {
-      type: String,
-      enum: {
-        values: ["google"],
-        message: "OAuth provider must be 'google' or null.",
-      },
-      default: null,
-    },
-    oauthId: String,
     name: {
       type: String,
       required: [true, "Name is required"],
@@ -47,7 +39,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: {
         values: ["ACTIVE", "LOCKED", "INACTIVE", "DELETED"],
-        message: "Status must be 'Active', 'Locked', 'Inactive', or 'Deleted'.",
+        message: "Status must be 'ACTIVE', 'LOCKED', 'INACTIVE', or 'DELETED'.",
       },
       default: "ACTIVE",
     },
@@ -55,14 +47,14 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    locked_until: Date,
+    lockedUntil: Date,
     verified: {
       type: Boolean,
       default: false,
     },
     roles: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Role",
+      ref: Role,
       required: [true, "User role is required"],
     },
     createdBy: {
