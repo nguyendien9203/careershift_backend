@@ -32,7 +32,7 @@ const interviewSchema = new mongoose.Schema(
   {
     recruitmentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Recruitment",
+      ref: Recruitment,
       required: [true, "Recruitment ID is required"],
     },
     stages: [

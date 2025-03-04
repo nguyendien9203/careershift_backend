@@ -1,11 +1,10 @@
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
+const passport = require("passport");
 const bodyParser = require("body-parser");
-//const connectDB = require('./config/db');
+const routes = require("./routes/index");
 require("dotenv").config();
-
-// connectDB();
 
 const app = express();
 
@@ -13,7 +12,9 @@ app.use(express.json());
 app.use(bodyParser.json());
 app.use(cors());
 app.use(morgan("dev"));
+app.use(passport.initialize());
 
 // define routes
+app.use("/api", routes);
 
 module.exports = app;

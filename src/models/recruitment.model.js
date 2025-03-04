@@ -7,7 +7,7 @@ const recruitmentSchema = new mongoose.Schema(
       ref: "Candidate",
       required: [true, "Candidate ID is required"],
     },
-    jobJd: {
+    jobId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Job",
       required: [true, "Job ID is required"],
