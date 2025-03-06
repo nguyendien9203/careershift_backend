@@ -1,262 +1,267 @@
 const Interview = require("../models/Interview");
 const Candidate = require("../models/Candidate");
-const User = require("../models/User"); // Import model User
-const { sendInterviewEmail } = require("./interviewsEmailController");
+const User = require("../models/User");
 const Job = require("../models/Job");
+const Recruitment = require("../models/Recruitment");
 const mongoose = require("mongoose");
-// Lấy danh sách lịch phỏng vấn (Get ALL)
+
+// Get all interviews
 const getInterviews = async (req, res) => {
   try {
-    const interviews = await Interview.find();
-    res.json({ success: true, interviews });
+    const interviews = await Interview.find()
+   
+
+    return res.status(200).json({
+      success: true,
+      count: interviews.length,
+      data: interviews,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Lỗi server", error });
+    console.error("Error fetching interviews:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching interviews",
+      error: error.message,
+    });
   }
 };
 
-// Lấy một lịch phỏng vấn theo ID
+// Get interview by ID
 const getInterviewById = async (req, res) => {
-    try {
-      const interview = await Interview.findById(req.params.id)
-        .populate("candidate_id", "name email phone")
-        .populate("job_id", "title platform")
-        .populate("stages.interviewer_ids", "name email");
-  
-      if (!interview) {
-        return res.status(404).json({ success: false, message: "Không tìm thấy lịch phỏng vấn" });
-      }
-  
-      res.json({ success: true, interview });
-    } catch (error) {
-      res.status(500).json({ success: false, message: "Lỗi server", error });
-    }
-  };
-
-
-
-
-
-  
-  const createInterview = async (req, res) => {
-    try {
-      const { candidate_id, job_id, stages, date, time, mode, address, google_meet_link } = req.body;
-  
-      if (!mongoose.Types.ObjectId.isValid(candidate_id) || !mongoose.Types.ObjectId.isValid(job_id)) {
-        return res.status(400).json({ success: false, message: "ID không hợp lệ" });
-      }
-  
-      let parsedStages;
-      try {
-        parsedStages = typeof stages === "string" ? JSON.parse(stages) : stages;
-      } catch (error) {
-        return res.status(400).json({ success: false, message: "Định dạng stages không hợp lệ" });
-      }
-  
-      if (!Array.isArray(parsedStages)) {
-        return res.status(400).json({ success: false, message: "Stages phải là một mảng object" });
-      }
-  
-      for (let stage of parsedStages) {
-        if (!stage.round || !stage.type || !stage.status || !Array.isArray(stage.interviewer_ids)) {
-          return res.status(400).json({ success: false, message: "Stage không hợp lệ" });
-        }
-  
-        for (let interviewer_id of stage.interviewer_ids) {
-          if (!mongoose.Types.ObjectId.isValid(interviewer_id)) {
-            return res.status(400).json({ success: false, message: `ID người phỏng vấn ${interviewer_id} không hợp lệ` });
-          }
-        }
-  
-        const existingInterviewers = await User.find({ _id: { $in: stage.interviewer_ids } });
-        if (existingInterviewers.length !== stage.interviewer_ids.length) {
-          return res.status(400).json({ success: false, message: "Một hoặc nhiều interviewer_ids không tồn tại" });
-        }
-  
-        stage.evaluations = [];
-      }
-  
-      const newInterview = new Interview({
-        candidate_id,
-        job_id,
-        stages: parsedStages,
-        final_status: "In Progress",
-        date,
-        time,
-        mode,
-        address: mode === "Offline" ? address : "",
-        google_meet_link: mode === "Online" ? google_meet_link : "",
-      });
-  
-      await newInterview.save();
-  
-      // Gửi email sau khi tạo phỏng vấn thành công
-      const candidate = await Candidate.findById(candidate_id);
-      const job = await Job.findById(job_id);
-  
-      if (candidate && job) {
-        sendInterviewEmail(candidate.email, candidate.name, job.title, date, time, mode, google_meet_link, address);
-      }
-  
-      res.status(201).json({ success: true, message: "Tạo lịch phỏng vấn thành công", interview: newInterview });
-    } catch (error) {
-      console.error("Lỗi khi tạo lịch phỏng vấn:", error);
-      res.status(500).json({ success: false, message: "Lỗi server", error });
-    }
-  };
-
-
-
-  // Update ket qua phong van tung vong
-  const updateInterviewStage = async (req, res) => {
   try {
-    const { interview_id, round, interviewer_id, score, comments, status } = req.body;
+    const { id } = req.params;
 
-    // Kiểm tra ID hợp lệ
-    if (!mongoose.Types.ObjectId.isValid(interview_id) || !mongoose.Types.ObjectId.isValid(interviewer_id)) {
-      return res.status(400).json({ success: false, message: "ID không hợp lệ" });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "Invalid ID" });
     }
 
-    // Tìm lịch phỏng vấn
-    const interview = await Interview.findById(interview_id);
+    const interview = await Interview.findById(id)
+      .populate("recruitmentId", "candidateId jobJd status")
+      .populate("stages.interviewerIds", "name email")
+      .populate("createdBy", "name email")
+      .populate("updatedBy", "name email");
+
     if (!interview) {
-      return res.status(404).json({ success: false, message: "Lịch phỏng vấn không tồn tại" });
+      return res.status(404).json({ success: false, message: "Interview not found" });
     }
 
-    // Tìm đúng vòng phỏng vấn (stage)
+    return res.status(200).json({ success: true, data: interview });
+  } catch (error) {
+    console.error("Error fetching interview:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+// Create new interview
+
+
+const createInterview = async (req, res) => {
+  try {
+    const { recruitmentId, stages, date, time, mode, address, google_meet_link } = req.body;
+
+    console.log("Received recruitmentId:", recruitmentId); // Debug log
+
+    // Validate recruitmentId format
+    if (!mongoose.Types.ObjectId.isValid(recruitmentId)) {
+      return res.status(400).json({ success: false, message: "Id isValid" });
+    }
+
+    // Check if recruitment exists by ObjectId
+    const recruitment = await Recruitment.findById(recruitmentId);
+    console.log("Found recruitment:", recruitment); // Debug log
+    if (!recruitment) {
+      return res.status(404).json({
+        success: false,
+        message: `Không tìm thấy recruitment với ID: ${recruitmentId}`,
+      });
+    }
+
+    // Parse stages if it's a string
+    const parsedStages = Array.isArray(stages) ? stages : JSON.parse(stages);
+
+    // Validate each stage
+    for (const stage of parsedStages) {
+      if (!stage.round || !stage.type || !Array.isArray(stage.interviewerIds)) {
+        return res.status(400).json({ success: false, message: "Invalid stage format" });
+      }
+      const interviewers = await User.find({ _id: { $in: stage.interviewerIds } });
+      if (interviewers.length !== stage.interviewerIds.length) {
+        return res.status(400).json({ success: false, message: "Invalid interviewer IDs" });
+      }
+      stage.evaluations = [];
+    }
+
+    // Create new interview
+    const newInterview = new Interview({
+      recruitmentId,
+      stages: parsedStages,
+      date,
+      time,
+      mode,
+      address: mode === "OFFLINE" ? address : undefined,
+      google_meet_link: mode === "ONLINE" ? google_meet_link : undefined,
+      createdBy: req.user?._id,
+      updatedBy: req.user?._id,
+    });
+
+    const savedInterview = await newInterview.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "Interview created successfully",
+      data: savedInterview,
+    });
+  } catch (error) {
+    console.error("Error creating interview:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while creating interview",
+      error: error.message,
+    });
+  }
+};
+
+
+
+
+
+// Update interview stage
+const updateInterviewStage = async (req, res) => {
+  try {
+    const { interviewId, round, interviewerId, score, comments, status } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(interviewId) || !mongoose.Types.ObjectId.isValid(interviewerId)) {
+      return res.status(400).json({ success: false, message: "Invalid ID" });
+    }
+
+    const interview = await Interview.findById(interviewId);
+    if (!interview) {
+      return res.status(404).json({ success: false, message: "Interview not found" });
+    }
+
     const stage = interview.stages.find((s) => s.round === round);
     if (!stage) {
-      return res.status(404).json({ success: false, message: `Không tìm thấy vòng phỏng vấn ${round}` });
+      return res.status(404).json({ success: false, message: `Round ${round} not found` });
     }
 
-    // Kiểm tra xem interviewer_id có trong danh sách `interviewer_ids` của vòng phỏng vấn không
-    if (!stage.interviewer_ids.some(id => id.toString() === interviewer_id)) {
+    if (!stage.interviewerIds.some((id) => id.equals(interviewerId))) {
       return res.status(403).json({
         success: false,
-        message: "Bạn không có quyền đánh giá vòng phỏng vấn này",
+        message: "Not authorized to evaluate this stage",
       });
     }
 
-    // Thêm hoặc cập nhật đánh giá (evaluations)
-    let evaluationIndex = stage.evaluations.findIndex((e) => e.interviewer_id.toString() === interviewer_id);
-
+    const evaluationIndex = stage.evaluations.findIndex((e) => e.interviewerId.equals(interviewerId));
     if (evaluationIndex > -1) {
-      // Nếu đã có đánh giá từ interviewer này, cập nhật lại
-      stage.evaluations[evaluationIndex].score = score;
-      stage.evaluations[evaluationIndex].comments = comments;
+      stage.evaluations[evaluationIndex] = { interviewerId, score, comments };
     } else {
-      // Nếu chưa có, thêm mới
-      stage.evaluations.push({ interviewer_id, score, comments });
+      stage.evaluations.push({ interviewerId, score, comments });
     }
 
-    // Nếu có trạng thái mới, cập nhật trạng thái vòng phỏng vấn
-    if (status && ["Scheduled", "Passed", "Failed", "Rescheduled", "Cancelled"].includes(status)) {
+    if (status && ["SCHEDULED", "PASSED", "FAILED", "PENDING"].includes(status)) {
       stage.status = status;
     }
 
-    // Lưu cập nhật vào database
+    interview.updatedBy = req.user?._id;
     await interview.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: `Cập nhật kết quả vòng ${round} thành công`,
-      interview,
+      message: `Round ${round} updated successfully`,
+      data: interview,
     });
   } catch (error) {
-    console.error("Lỗi khi cập nhật vòng phỏng vấn:", error);
-    res.status(500).json({ success: false, message: "Lỗi server", error });
+    console.error("Error updating stage:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
-  
 
-
-
-//Delete lich phong van
-
+// Delete interview
 const deleteInterview = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Kiểm tra ID hợp lệ
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: "ID không hợp lệ" });
+      return res.status(400).json({ success: false, message: "Invalid ID" });
     }
 
-    // Tìm lịch phỏng vấn
-    const interview = await Interview.findById(id);
+    const interview = await Interview.findByIdAndDelete(id);
     if (!interview) {
-      return res.status(404).json({ success: false, message: "Lịch phỏng vấn không tồn tại" });
+      return res.status(404).json({ success: false, message: "Interview not found" });
     }
 
-    // Xóa lịch phỏng vấn
-    await Interview.findByIdAndDelete(id);
-
-    res.status(200).json({ success: true, message: "Xóa lịch phỏng vấn thành công" });
+    return res.status(200).json({
+      success: true,
+      message: "Interview deleted successfully",
+    });
   } catch (error) {
-    console.error("Lỗi khi xóa lịch phỏng vấn:", error);
-    res.status(500).json({ success: false, message: "Lỗi server", error });
+    console.error("Error deleting interview:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
 
-
-
-
-// Update interviews
-
+// Update interview
 const updateInterview = async (req, res) => {
   try {
     const { id } = req.params;
     const { date, time, mode, address, google_meet_link } = req.body;
 
-    // Kiểm tra ID hợp lệ
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: "ID không hợp lệ" });
+      return res.status(400).json({ success: false, message: "Invalid ID" });
     }
 
-    // Tìm lịch phỏng vấn
     const interview = await Interview.findById(id);
     if (!interview) {
-      return res.status(404).json({ success: false, message: "Lịch phỏng vấn không tồn tại" });
+      return res.status(404).json({ success: false, message: "Interview not found" });
     }
 
-    // Cập nhật thông tin mới nếu có
     if (date) interview.date = date;
     if (time) interview.time = time;
     if (mode) interview.mode = mode;
+    if (mode === "OFFLINE") interview.address = address;
+    if (mode === "ONLINE") interview.google_meet_link = google_meet_link;
 
-    // Xử lý điều kiện mode (Offline hoặc Online)
-   
-    // Kiểm tra trạng thái các vòng phỏng vấn (stages)
-    let allPassed = interview.stages.every(stage => stage.status === "Passed");
-    let anyFailed = interview.stages.some(stage => stage.status === "Failed");
+    const allPassed = interview.stages.every((stage) => stage.status === "PASSED");
+    const anyFailed = interview.stages.some((stage) => stage.status === "FAILED");
+    interview.finalStatus = anyFailed ? "COMPLETED" : allPassed ? "COMPLETED" : "IN_PROGRESS";
 
-    if (anyFailed) {
-      interview.final_status = "Failed";
-    } else if (allPassed) {
-      interview.final_status = "Passed";
-    } else {
-      interview.final_status = "In Progress"; // Giữ nguyên nếu chưa đủ thông tin
-    }
-
-    // Lưu cập nhật vào database
+    interview.updatedBy = req.user?._id;
     await interview.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: "Cập nhật lịch phỏng vấn thành công",
-      interview,
+      message: "Interview updated successfully",
+      data: interview,
     });
   } catch (error) {
-    console.error("Lỗi khi cập nhật lịch phỏng vấn:", error);
-    res.status(500).json({ success: false, message: "Lỗi server", error });
+    console.error("Error updating interview:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
 
 
 
-
-
-
-
-
-  
-module.exports = { getInterviews, getInterviewById,createInterview,updateInterviewStage, deleteInterview,updateInterview};
+module.exports = {
+  getInterviews,
+  getInterviewById,
+  createInterview,
+  updateInterviewStage,
+  deleteInterview,
+  updateInterview
+};

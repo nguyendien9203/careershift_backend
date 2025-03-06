@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-
+const Recruiments = require("../models/Recruitment")
 const evaluationSchema = new mongoose.Schema({
   interviewerId: {
     type: mongoose.Schema.Types.ObjectId,
