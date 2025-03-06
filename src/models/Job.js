@@ -1,13 +1,23 @@
+const mongoose = require("mongoose");
 
-const mongoose = require('mongoose');
-
-const JobSchema = new mongoose.Schema({
-    title: String,
-    platform: String,
+const jobSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: [true, "Job title is required"],
+      trim: true,
+    },
     source_url: String,
-    created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    updated_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
-  }, { timestamps: true });
-  
-  module.exports = mongoose.model('Job', JobSchema);
-  
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("Job", jobSchema);

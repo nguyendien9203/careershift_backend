@@ -1,74 +1,113 @@
 const mongoose = require("mongoose");
 
-const InterviewSchema = new mongoose.Schema(
-  {
-    candidate_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Candidate",
-      required: true,
+const evaluationSchema = new mongoose.Schema({
+  interviewerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: [true, "Interviewer ID is required for evaluation"],
+  },
+  score: {
+    type: Map,
+    of: {
+      type: Number,
+      min: [0, "Score must be between 0 and 10"],
+      max: [10, "Score must be between 0 and 10"],
     },
-    job_id: {
+    validate: {
+      validator: function (scores) {
+        return Object.values(scores).every(
+          (score) => score >= 0 && score <= 10
+        );
+      },
+      message: "All scores must be between 0 and 10",
+    },
+  },
+  comments: {
+    type: String,
+    trim: true,
+  },
+});
+
+const interviewSchema = new mongoose.Schema(
+  {
+    recruitmentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Job",
-      required: true,
+      ref: "Recruitment",
+      required: [true, "Recruitment ID is required"],
     },
     stages: [
       {
-        round: { type: Number, required: true },
-        interviewer_ids: [
-          { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+        round: {
+          type: Number,
+          required: [true, "Round number is required"],
+          min: [1, "Round number must be at least 1"],
+        },
+        interviewerIds: [
+          {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: [true, "At least one interviewer is required"],
+          },
         ],
         type: {
           type: String,
-          required: true,
-          enum: ["Technical", "HR", "Managerial", "Other"],
+          required: [true, "Interview type is required"],
+          enum: {
+            values: ["HR_SCREENING", "TECHNICAL_INTERVIEW", "FINAL_INTERVIEW"],
+            message: "Invalid interview type",
+          },
         },
         status: {
           type: String,
-          enum: ["Scheduled", "Rescheduled", "Cancelled"],
-          default: "Scheduled",
-        },
-        evaluations: [
-          {
-            interviewer_id: {
-              type: mongoose.Schema.Types.ObjectId,
-              ref: "User",
-              required: true,
-            }, // ID người đánh giá
-            score: {
-              type: Object,
-              default: {},
-            },
-            comments: {
-              type: String,
-              default: "", // Bình luận
-            },
+          enum: {
+            values: ["SCHEDULED", "PASSED", "FAILED", "PENDING"],
+            message: "Invalid status value",
           },
-        ],
+          default: "SCHEDULED",
+        },
+        evaluations: [evaluationSchema],
       },
     ],
-    final_status: {
+    finalStatus: {
       type: String,
-      enum: ["In Progress", "Passed", "Failed"],
-      default: "In Progress",
+      enum: {
+        values: ["IN_PROGRESS", "COMPLETED", "CANCELLED"],
+        message:
+          "Final status must be either 'IN_PROGRESS', 'COMPLETED', or 'CANCELLED'",
+      },
+      default: "IN_PROGRESS",
     },
-    date: { type: Date, required: true }, 
-    time: { type: String, required: true }, 
+    date: {
+      type: Date,
+      required: [true, "Interview date is required"],
+    },
+    time: {
+      type: String,
+      required: [true, "Interview time is required"],
+    },
     mode: {
       type: String,
-      enum: ["Online", "Offline"],
-      default: "Offline",
+      enum: {
+        values: ["ONLINE", "OFFLINE"],
+        message: "Mode must be either 'ONLINE' or 'OFFLINE'",
+      },
+      required: [true, "Interview mode is required"],
     },
     address: {
       type: String,
-      default: "", // Địa chỉ phỏng vấn (nếu offline)
+      trim: true,
     },
-    google_meet_link: {
-      type: String,
-      default: "", // Link Google Meet (nếu online)
+    google_meet_link: String,
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
     },
   },
-  { timestamps: true } 
+  { timestamps: true }
 );
 
-module.exports = mongoose.model("Interview", InterviewSchema);
+module.exports = mongoose.model("Interview", interviewSchema);

@@ -1,14 +1,40 @@
+const mongoose = require("mongoose");
 
-const mongoose = require('mongoose');
+const recruitmentSchema = new mongoose.Schema(
+  {
+    candidateId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Candidate",
+      required: [true, "Candidate ID is required"],
+    },
+    jobJd: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Job",
+      required: [true, "Job ID is required"],
+    },
+    status: {
+      type: String,
+      enum: {
+        values: ["ON_PROGRESS", "INTERVIEW", "REJECTED", "HIRED"],
+        message:
+          "Status must be one of: ON_PROGRESS, INTERVIEW, REJECTED, HIRED",
+      },
+      default: "ON_PROGRESS",
+    },
+    notes: {
+      type: String,
+      trim: true,
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+  },
+  { timestamps: true }
+);
 
-const RecruitmentSchema = new mongoose.Schema({
-    candidate_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Candidate' },
-    job_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Job' },
-    status: { type: String, enum: ['On Progress', 'Interview', 'Rejected', 'Hired'], default: 'On Progress' },
-    notes: String,
-    created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    updated_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
-  }, { timestamps: true });
-  
-  module.exports = mongoose.model('Recruitment', RecruitmentSchema);
-  
+module.exports = mongoose.model("Recruitment", recruitmentSchema);
