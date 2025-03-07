@@ -16,6 +16,10 @@ const Token = require("./models/Token");
 const emailRouters = require("./routers/emailRouters");
 const candidateRouter = require("./routers/candidateRouters");
 const interviewRouter = require("./routers/interviewRouter");
+const offerRouter = require("./routers/offerRouter");
+const permissionRouter = require("./routers/permissionRouter");
+const roleRouter = require("./routers/roleRouter");
+const userRouter = require("./routers/userRouter");
 // connectDB();
 
 const app = express();
@@ -29,6 +33,11 @@ app.use(morgan("dev"));
 app.use("/api",emailRouters)
 app.use('/api/candidate', candidateRouter);
 app.use('/api/interview', interviewRouter);
+app.use('/api/offer', offerRouter);
+app.use('/api/permission',permissionRouter);
+app.use('/api/role',roleRouter);
+app.use('/api/user',userRouter);
+
 // app.use((err, req, res) => {
 //     if(err){
 //         res.status(err.status || 500).json({
