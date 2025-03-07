@@ -170,3 +170,39 @@ exports.updateOffer = async (req, res) => {
         return res.status(500).json({ message: "Lỗi server", error: error.message });
     }
 };};
+  exports.hrUpdateOfferStatus = async (req, res) => {
+    try {
+      const { offerId } = req.params;
+      const { action, updatedBy } = req.body; // action = "ACCEPT" hoặc "REJECT"
+  
+      const offer = await Offer.findById(offerId);
+      if (!offer) {
+        return res.status(404).json({ message: "Offer not found" });
+      }
+  
+      if (offer.status !== "SENT") {
+        return res.status(400).json({ message: "Offer is not in a valid state for HR update" });
+      }
+  
+      if (action === "ACCEPT") {
+        offer.status = "ACCEPTED";
+        sendOnboardingEmail(offer); // Gửi email onboarding
+      } else if (action === "REJECT") {
+        offer.status = "REJECTED";
+      } else {
+        return res.status(400).json({ message: "Invalid action" });
+      }
+  
+      offer.updatedBy = updatedBy;
+      await offer.save();
+  
+      res.status(200).json({ message: `Offer status updated to ${offer.status}`, offer });
+    } catch (error) {
+      res.status(500).json({ message: "Server error", error });
+    }
+  };
+  
+  // Function gửi email onboarding khi offer được chấp nhận
+  function sendOnboardingEmail(offer) {
+    console.log(`📩 Sending onboarding email for accepted offer ID: ${offer._id}`);
+  }
