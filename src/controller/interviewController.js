@@ -15,15 +15,15 @@ exports.fetchCandidatesPassedInterview = async () => {
             return [];
         }
 
-        const recruitments = await Recruitment.find({ _id: { $in: recruitmentIds } }).select("candidateId jobJd");
+        const recruitments = await Recruitment.find({ _id: { $in: recruitmentIds } }).select("candidateId jobId");
         if (!recruitments.length) {
             return [];
         }
 
         const candidateIds = recruitments.map((r) => r.candidateId);
-        const jobJdIds = recruitments.map((r) => r.jobJd);
+        const jobIdIds = recruitments.map((r) => r.jobId);
 
-        const jobs = await Job.find({ _id: { $in: jobJdIds } }).select("title");
+        const jobs = await Job.find({ _id: { $in: jobIdIds } }).select("title");
         const jobMap = new Map(jobs.map((job) => [job._id.toString(), job.title]));
 
         const candidates = await Candidate.find({ _id: { $in: candidateIds } })
@@ -33,9 +33,10 @@ exports.fetchCandidatesPassedInterview = async () => {
 
         const result = recruitments.map((r) => {
             const candidate = candidateMap.get(r.candidateId.toString());
-            const jobName = jobMap.get(r.jobJd?.toString()) || "Unknown";
+            const jobName = jobMap.get(r.jobId?.toString()) || "Unknown";
 
             return {
+                _id: candidate?._id.toString(),
                 name: candidate?.name || "Unknown",
                 email: candidate?.email || "N/A",
                 phone: candidate?.phone || "N/A",
