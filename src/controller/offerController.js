@@ -98,6 +98,11 @@ exports.updateOffer = async (req, res) => {
   
   
   exports.managerApproveOffer = async (req, res) => {
+    try {
+        const { offerId } = req.params;
+        const { action, updatedBy } = req.body; // action = "ACCEPT" hoặc "REJECT"
+
+        console.log(" Nhận yêu cầu duyệt offer:", { offerId, action, updatedBy });
 
         const offer = await Offer.findById(offerId);
         if (!offer) {
