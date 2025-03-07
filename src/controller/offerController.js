@@ -3,6 +3,7 @@ const Offer = require("../models/Offer");
 const Recruitment = require("../models/Recruitment");
 const { fetchCandidatesPassedInterview } = require("./interviewController");
 const { sendSalaryProposalEmail } = require("../config/mailer");
+const Candidate = require("../models/Candidate");
 
 exports.createAndSendOffer = async (req, res) => {
     try {
@@ -67,11 +68,35 @@ exports.createAndSendOffer = async (req, res) => {
     }
 };
 
-// API cập nhật offer (khi ứng viên thương lượng)
 exports.updateOffer = async (req, res) => {
     try {
-        const { offerId, negotiatedSalary, salary, bonus, note, status } = req.body;
-        const updatedBy = req.user?.id;
+      const { offerId } = req.params;
+      const { negotiatedSalary, updatedBy } = req.body;
+  
+      const offer = await Offer.findById(offerId);
+      if (!offer) {
+        return res.status(404).json({ message: "Offer not found" });
+      }
+  
+      // Kiểm tra nếu có deal lương thì phải đặt approvalRequired = true
+      if (negotiatedSalary && negotiatedSalary !== offer.salary) {
+        if (negotiatedSalary < offer.baseSalary) {
+          return res.status(400).json({ message: "Negotiated salary must be greater than or equal to base salary" });
+        }
+        offer.negotiatedSalary = negotiatedSalary;
+        offer.approvalRequired = true; // Cần duyệt từ manager
+        offer.status = "PENDING"; // Chuyển trạng thái chờ duyệt
+      }
+  
+      offer.updatedBy = updatedBy;
+      await offer.save();
+      res.status(200).json({ message: "Offer updated, pending manager approval", offer });
+    } catch (error) {
+      res.status(500).json({ message: "Server error", error });
+    }
+  };
+  
+  
 
         const offer = await Offer.findById(offerId);
         if (!offer) {
