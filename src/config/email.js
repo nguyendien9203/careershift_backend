@@ -1,5 +1,5 @@
 const nodemailer = require("nodemailer");
-const OTP = require("../models/otp.model");
+const redis = require("./redis");
 require("dotenv").config();
 
 const transporter = nodemailer.createTransport({
@@ -32,14 +32,15 @@ exports.sendEmail = async (to, subject, htmlContent) => {
   }
 };
 
+exports.generateOTP = async (email) => {
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  await redis.set(`otp:${email}`, otp, "EX", 120); //2m
+  return otp;
+};
+
 exports.sendOTPToUser = async (user) => {
   try {
-    await OTP.deleteMany({ userId: user._id });
-
-    const otp = Math.floor(100000 + Math.random() * 900000);
-    const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
-
-    await OTP.create({ userId: user._id, value: otp, expiresAt: expiresAt });
+    const otp = await this.generateOTP(user.email);
 
     const htmlContent = `
       <h2>Xác thực tài khoản</h2>
