@@ -12,25 +12,23 @@ exports.sendInterviewEmail = async (req, res) => {
       return res.status(404).json({ message: "Candidate not found" });
     }
     if (candidate.status.trim().toUpperCase() !== "AVAILABLE") {
-      return res
-        .status(400)
-        .json({ message: `Candidate has status: ${candidate.status}. Cannot send email.` });
-      }
-
-    const acceptLink = `http://localhost:9999/redirect.html?token=HIRED_${email}`;
-    const rejectLink = `http://localhost:9999/redirect.html?token=REJECTED_${email}`;
+      return res.status(400).json({
+        message: `Candidate has status: ${candidate.status}. Cannot send email.`,
+      });
+    }
 
     const emailContent = `
-      <div style="text-align: center; font-family: Arial, sans-serif;">
-        <h3>Chào ${candidate.name},</h3>
-        <p>Bạn đã được mời phỏng vấn!</p>
-        <p>Vui lòng xác nhận sự tham gia của bạn bằng cách chọn một trong các lựa chọn dưới đây:</p>
-        <a href="${acceptLink}" style="display: inline-block; background-color: green; color: white; padding: 10px 20px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 5px; margin: 10px;">Accept</a>
-        <a href="${rejectLink}" style="display: inline-block; background-color: red; color: white; padding: 10px 20px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 5px; margin: 10px;">Reject</a>
-        <p>Nếu bạn có bất kỳ câu hỏi nào, đừng ngần ngại liên hệ với chúng tôi qua email <strong>{contact_email}</strong> hoặc số điện thoại <strong>{contact_phone}</strong>.</p>
-        <p>Chúng tôi mong sớm nhận được phản hồi từ bạn!</p>
-        <p>Trân trọng,</p>
-        </div>
+      <div style="text-align: center; font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+    <h3>Chào ${candidate.name},</h3>
+    <p>Chúng tôi rất vui khi nhận được hồ sơ của bạn ứng tuyển tại <strong>Công ty CareerShift</strong>. Sau khi xem xét hồ sơ, chúng tôi muốn mời bạn tham gia phỏng vấn.</p>
+    <p>Vui lòng xác nhận tham gia phỏng vấn bằng cách phản hồi email này <strong>trước 00:00 ngày 09/03/2025</strong>.</p>
+    <p><strong>Lưu ý:</strong> Nếu chúng tôi không nhận được phản hồi từ bạn trước thời hạn trên, chúng tôi sẽ mặc định rằng bạn từ chối lời mời phỏng vấn.</p>
+    <p>Sau khi bạn xác nhận, chúng tôi sẽ gửi thông tin chi tiết về lịch trình và hình thức phỏng vấn.</p>
+    <p>Nếu có bất kỳ thắc mắc nào, đừng ngần ngại liên hệ với chúng tôi qua email <strong>carrershift@gmail.com</strong> hoặc số điện thoại <strong>0123456789</strong>.</p>
+    <p>Chúng tôi mong sớm nhận được phản hồi từ bạn!</p>
+    <p>Trân trọng,</p>
+    <p><strong>Công ty CareerShift</strong></p>
+    </div>
     `;
 
     await sendMail(email, "Lời mời xác nhận phỏng vấn", emailContent);
@@ -43,47 +41,38 @@ exports.sendInterviewEmail = async (req, res) => {
 
 exports.updateCandidateStatus = async (req, res) => {
   try {
-    const { email, status } = req.query;
+    const { email, status } = req.body;
     if (!email || !status) {
-      return res.send(`
-        <script>
-          alert("Missing email or status information.");
-          window.close();
-        </script>
-      `);
+      return res
+        .status(400)
+        .json({ message: "Email and status are required." });
     }
+    // Kiểm tra status hợp lệ
+    const validStatuses = ["AVAILABLE", "HIRED", "REJECTED"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status value." });
+    }
+
     const candidate = await Candidate.findOne({ email });
+
     if (!candidate) {
-      return res.send(`
-        <script>
-          alert("Candidate not found.");
-          window.close();
-        </script>
-      `);
+      return res.status(404).json({ message: "Candidate not found." });
     }
+
     if (candidate.status === "HIRED" || candidate.status === "REJECTED") {
-      return res.send(`
-        <script>
-          alert("You have already responded.");
-          window.close();
-        </script>
-      `);
+      return res
+        .status(400)
+        .json({ message: "Candidate status is already final." });
     }
     candidate.status = status;
+
     await candidate.save();
-    return res.send(`
-      <script>
-        alert("Updated successfully! New status: ${status}");
-        window.close();
-      </script>
-    `);
+
+    return res
+      .status(200)
+      .json({ message: `Candidate status updated to ${status}` });
   } catch (error) {
-    console.error("Status update error:", error);
-    return res.send(`
-      <script>
-        alert("Server error: ${error.message}");
-        window.close();
-      </script>
-    `);
+    console.error("Error updating candidate status:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 };
