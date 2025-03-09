@@ -91,3 +91,84 @@ exports.deleteInterview = async (req, res, next) => {
         next(error);
     }
 };
+
+// Get Evaluation Summary
+exports.getEvaluationSummary = async (req, res) => {
+    try {
+      const { id } = req.params;
+  
+      // Get interview 
+      const interview = await Interview.findById(id)
+        .populate("stages.evaluations.interviewerId", "name")
+        .lean();
+  
+      if (!interview) {
+        return res.status(404).json({ message: "Interview not found" });
+      }
+  
+      let roundSummaries = [];
+  
+      // Fetch each stages 
+      interview.stages.forEach((stage) => {
+        let interviewerSummary = {};
+  
+        // Duyệt qua từng đánh giá của vòng hiện tại
+        stage.evaluations.forEach((evaluation) => {
+          const interviewer = evaluation.interviewerId;
+          if (!interviewer) return;
+  
+          const interviewerId = interviewer._id.toString();
+          if (!interviewerSummary[interviewerId]) {
+            interviewerSummary[interviewerId] = {
+              interviewerId: interviewerId,
+              interviewerName: interviewer.name,
+              averageScores: {},
+              totalScores: {},
+              scoreCounts: {},
+              comments: [],
+            };
+          }
+  
+          // Summary scores by criteria
+          for (let key in evaluation.score) {
+            if (!interviewerSummary[interviewerId].totalScores[key]) {
+              interviewerSummary[interviewerId].totalScores[key] = 0;
+              interviewerSummary[interviewerId].scoreCounts[key] = 0;
+            }
+            interviewerSummary[interviewerId].totalScores[key] += evaluation.score[key];
+            interviewerSummary[interviewerId].scoreCounts[key] += 1;
+          }
+  
+          // Save comments
+          if (evaluation.comments) {
+            interviewerSummary[interviewerId].comments.push(evaluation.comments);
+          }
+        });
+  
+        // Evaluate the average score for each interviewer
+        Object.values(interviewerSummary).forEach((summary) => {
+          for (let key in summary.totalScores) {
+            summary.averageScores[key] = (summary.totalScores[key] / summary.scoreCounts[key]).toFixed(2);
+          }
+          delete summary.totalScores;
+          delete summary.scoreCounts;
+        });
+  
+        // Save the result for each round
+        roundSummaries.push({
+          round: stage.round,
+          type: stage.type,
+          status: stage.status,
+          interviewers: Object.values(interviewerSummary),
+        });
+      });
+  
+      res.json({
+        interviewId: id,
+        rounds: roundSummaries,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  };
