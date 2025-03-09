@@ -26,12 +26,3 @@ exports.authenticateToken = (req, res, next) => {
       .json({ message: "Access token không hợp lệ" });
   }
 };
-
-// exports.authorizeRoles = (...roles) => {
-//   return (req, res, next) => {
-//     if (!roles.includes(req.user.roles)) {
-//       throw new ForbiddenError("Bạn không có quyền truy cập!");
-//     }
-//     next();
-//   };
-// };

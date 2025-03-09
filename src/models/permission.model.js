@@ -12,6 +12,17 @@ const permissionSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    category: {
+      type: String,
+      required: true,
+      enum: [
+        "Candidate Management",
+        "Recruitment Management",
+        "Interview Management",
+        "User Management",
+        "Offer Management",
+      ],
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
