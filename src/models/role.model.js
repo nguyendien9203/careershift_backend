@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+require("./index");
 
 const roleSchema = new mongoose.Schema(
   {
