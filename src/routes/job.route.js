@@ -1,6 +1,13 @@
 const express = require("express");
 const jobRouter = express.Router();
-const { createJob, getJobs, getJobById, updateJob, deleteJob, getJobsByUserId } = require("../controllers/job.controller");
+const {
+  createJob,
+  getJobs,
+  getJobById,
+  updateJob,
+  deleteJob,
+  getJobsByUserId,
+} = require("../controllers/job.controllers");
 // Need a middleware to decode token, will do it later and add to routes
 const { authenticateToken } = require("../middlewares/auth");
 
