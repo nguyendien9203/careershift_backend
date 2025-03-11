@@ -6,7 +6,7 @@ const {
   checkFileExistsOnS3,
 } = require("../controllers/s3.controllers");
 // Need a middleware to decode token, will do it later and add to routes
-const { authenticateToken } = require("../middlewares/auth");
+const { authenticateToken } = require("../middlewares/auth.middleware");
 const multer = require("multer");
 
 const storage = multer.memoryStorage();
