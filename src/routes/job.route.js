@@ -9,7 +9,7 @@ const {
   getJobsByUserId,
 } = require("../controllers/job.controllers");
 // Need a middleware to decode token, will do it later and add to routes
-const { authenticateToken } = require("../middlewares/auth");
+const { authenticateToken } = require("../middlewares/auth.middleware");
 
 jobRouter.post("/", createJob);
 jobRouter.get("/", getJobs);
