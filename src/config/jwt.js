@@ -2,13 +2,9 @@ const jwt = require("jsonwebtoken");
 const redis = require("./redis");
 
 exports.generateAccessToken = async (user) => {
-  return jwt.sign(
-    { id: user._id, email: user.email, role: user.roles },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: "15m",
-    }
-  );
+  return jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    expiresIn: "15m",
+  });
 };
 
 exports.generateRefreshToken = async (user) => {
@@ -18,4 +14,8 @@ exports.generateRefreshToken = async (user) => {
 
   await redis.set(`refreshToken:${user._id}`, refreshToken, "EX", 24 * 60 * 60); //1d
   return refreshToken;
+};
+
+exports.invalidateUserTokens = async (userId) => {
+  await redis.del(`refreshToken:${userId}`);
 };
