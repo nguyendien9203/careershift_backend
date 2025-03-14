@@ -54,9 +54,33 @@ const getInterviewerWorkload = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };
+
+// Xem chi tiết các vòng phỏng vấn
+const getInterviewStages = async (req, res) => {
+    try {
+        const { interviewId } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(interviewId)) {
+            return res.status(400).json({ success: false, message: 'Invalid interview ID' });
+        }
+
+        const interview = await Interview.findById(interviewId)
+            .populate('stages.interviewerIds', 'name email') // Populate thông tin người phỏng vấn
+            .populate('stages.evaluations.interviewerId', 'name email'); // Populate thông tin người đánh giá
+
+        if (!interview) {
+            return res.status(404).json({ success: false, message: 'Interview not found' });
+        }
+
+        res.status(200).json({ success: true, data: interview.stages });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
 module.exports = {
     getInterviewsByRecruitment,
     getUpcomingInterviews,
-    getInterviewerWorkload
+    getInterviewerWorkload,
+    getInterviewStages
    
 };
