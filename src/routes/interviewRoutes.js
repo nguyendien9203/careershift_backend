@@ -8,7 +8,7 @@ const { getInterviews,
 
 const {sendInterviewInvitation} = require("../controllers/sendEmailController")
 const {getInterviewsByRecruitment,getUpcomingInterviews,getInterviewerWorkload} = require("../controllers/interviewManagementController")
-const {assignInterviewers} = require("../controllers/interviewAssignmentController")
+const {assignInterviewers,removeInterviewer} = require("../controllers/interviewAssignmentController")
 
 
 
@@ -42,5 +42,7 @@ router.get('/upcoming', getUpcomingInterviews);
 router.get('/interviewer-workload/:interviewerId', getInterviewerWorkload);
 // Thêm người phỏng vấn vào 1 vòng phỏng vấn
 router.put('/assign-interviewers', assignInterviewers); 
+//Loại bỏ người phỏng vấn ra ngoài cuộc phỏng vấn
+router.put('/remove-interviewer', removeInterviewer);
 
 module.exports = router;

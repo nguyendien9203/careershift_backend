@@ -60,4 +60,30 @@ const assignInterviewers = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };
-module.exports = { assignInterviewers  };
+// Loại bỏ người phỏng vấn khỏi một vòng
+const removeInterviewer = async (req, res) => {
+    try {
+        const { interviewId, round, interviewerId } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(interviewId) || !mongoose.Types.ObjectId.isValid(interviewerId)) {
+            return res.status(400).json({ success: false, message: 'Invalid ID' });
+        }
+
+        const interview = await Interview.findById(interviewId);
+        if (!interview) return res.status(404).json({ success: false, message: 'Interview not found' });
+
+        const stage = interview.stages.find(s => s.round === round);
+        if (!stage) return res.status(404).json({ success: false, message: `Round ${round} not found` });
+
+        stage.interviewerIds = stage.interviewerIds.filter(id => !id.equals(interviewerId));
+        await interview.save();
+
+        res.status(200).json({ success: true, message: 'Interviewer removed successfully', data: interview });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+
+
+module.exports = { assignInterviewers ,removeInterviewer };
