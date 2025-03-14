@@ -8,6 +8,10 @@ const { getInterviews,
 
 const {sendInterviewInvitation} = require("../controllers/sendEmailController")
 const {getInterviewsByRecruitment,getUpcomingInterviews,getInterviewerWorkload} = require("../controllers/interviewManagementController")
+const {assignInterviewers} = require("../controllers/interviewAssignmentController")
+
+
+
 const router = express.Router();
 
 // Route lấy danh sách lịch phỏng vấn
@@ -36,5 +40,7 @@ router.get('/recruitment/:recruitmentId', getInterviewsByRecruitment);
 router.get('/upcoming', getUpcomingInterviews);
 //Xem công việc của người phỏng vấn
 router.get('/interviewer-workload/:interviewerId', getInterviewerWorkload);
+// Thêm người phỏng vấn vào 1 vòng phỏng vấn
+router.put('/assign-interviewers', assignInterviewers); 
 
 module.exports = router;
