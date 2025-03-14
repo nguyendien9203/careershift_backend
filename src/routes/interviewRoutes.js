@@ -13,7 +13,7 @@ const {getInterviewsByRecruitment,
     getInterviewStages} = require("../controllers/interviewManagementController")
 const {assignInterviewers,removeInterviewer} = require("../controllers/interviewAssignmentController")
 
-
+const {viewEvaluations, submitEvaluation,getEvaluationSummary } = require("../controllers/interviewEvaluationController");
 
 const router = express.Router();
 
@@ -29,7 +29,7 @@ router.post("/createInterviews", createInterview);
 router.put("/interviews/update-stage", updateInterviewStage);
 
 // Xóa lịch phỏng vấn
-router.delete("/interviews/:id", deleteInterview);
+router.delete("/interviews/deleteInterview/:id", deleteInterview);
 
 // Cập nhật lịch phỏng vấn
 router.put("/UpdateInterviews/:id", updateInterview);
@@ -50,5 +50,12 @@ router.put('/remove-interviewer', removeInterviewer);
 //Xem chi tiết các vòng phỏng vấn
 router.get('/stages/:interviewId', getInterviewStages);
 
+// Gửi đánh giá
+router.post('/submit-evaluation', submitEvaluation);
 
+// Xem đánh giá của một người phỏng vấn trong một phỏng vấn 
+router.get('/view-evaluations/:interviewId/:interviewerId', viewEvaluations); 
+
+// Tổng hợp kết quả phỏng vấn theo ứng viên, người phỏng vấn, score, và comment
+router.get('/evaluation-summary/:interviewId', getEvaluationSummary); 
 module.exports = router;
