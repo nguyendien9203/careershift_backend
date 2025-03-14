@@ -5,7 +5,7 @@ const Role = require("../models/role.model");
 const Permission = require("../models/permission.model");
 const UserStatus = require("../utils");
 const { sendTempPasswordToUser } = require("../config/email");
-const { invalidateUserTokens } = require("../config/jwt");
+const { invalidateUserTokens, blacklistAccessToken } = require("../config/jwt");
 
 // Role: Admin -> See the user list is not admin
 exports.getAllUsers = async (req, res) => {
@@ -283,18 +283,26 @@ exports.assignRoles = async (req, res) => {
 exports.resetPassword = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
+    const token = req.headers.authorization?.split(" ")[1];
+
     if (!user) {
       return res.status(404).json({ message: "Người dùng không tồn tại" });
     }
 
-    const { success, message, tempPassword } =
-      await emailService.sendTempPasswordToUser(user.name, user.email);
+    const { success, message, tempPassword } = await sendTempPasswordToUser(
+      user.name,
+      user.email
+    );
 
     if (!success) return res.status(500).json({ message });
 
     user.password = tempPassword;
     await user.save();
     await invalidateUserTokens(user._id);
+
+    if (token) {
+      await blacklistAccessToken(token);
+    }
 
     res.status(200).json({
       message:

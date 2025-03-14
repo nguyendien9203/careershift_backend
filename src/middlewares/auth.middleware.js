@@ -1,9 +1,10 @@
 const jwt = require("jsonwebtoken");
 const { StatusCodes } = require("http-status-codes");
+const redis = require("../config/redis");
 const User = require("../models/user.model");
 require("dotenv").config();
 
-exports.authenticateToken = (req, res, next) => {
+exports.authenticateToken = async (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
 
@@ -11,6 +12,12 @@ exports.authenticateToken = (req, res, next) => {
     return res
       .status(StatusCodes.UNAUTHORIZED)
       .json({ message: "Không có quyền truy cập" });
+
+  const isBlacklisted = await redis.get(`blacklist:${token}`);
+  if (isBlacklisted)
+    return res
+      .status(StatusCodes.UNAUTHORIZED)
+      .json({ message: "Token bị thu hồi" });
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
