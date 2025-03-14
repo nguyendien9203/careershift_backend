@@ -7,7 +7,7 @@ const { getInterviews,
     updateInterview, } = require("../controllers/interviewController");
 
 const {sendInterviewInvitation} = require("../controllers/sendEmailController")
-const {getInterviewsByRecruitment,getUpcomingInterviews} = require("../controllers/interviewManagementController")
+const {getInterviewsByRecruitment,getUpcomingInterviews,getInterviewerWorkload} = require("../controllers/interviewManagementController")
 const router = express.Router();
 
 // Route lấy danh sách lịch phỏng vấn
@@ -34,4 +34,7 @@ router.get('/recruitment/:recruitmentId', getInterviewsByRecruitment);
 
 //Xem những lịch phỏng vấn ở những ngày tiếp theo 
 router.get('/upcoming', getUpcomingInterviews);
+//Xem công việc của người phỏng vấn
+router.get('/interviewer-workload/:interviewerId', getInterviewerWorkload);
+
 module.exports = router;

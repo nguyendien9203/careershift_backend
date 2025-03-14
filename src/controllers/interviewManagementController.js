@@ -37,9 +37,26 @@ const getUpcomingInterviews = async (req, res) => {
     }
 };
 
+const getInterviewerWorkload = async (req, res) => {
+    try {
+        const { interviewerId } = req.params;
 
+        if (!mongoose.Types.ObjectId.isValid(interviewerId)) {
+            return res.status(400).json({ success: false, message: 'Invalid interviewer ID' });
+        }
+
+        const interviews = await Interview.find({
+            'stages.interviewerIds': interviewerId
+        }).populate('recruitmentId', 'candidateId jobId');
+
+        res.status(200).json({ success: true, count: interviews.length, data: interviews });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
 module.exports = {
     getInterviewsByRecruitment,
-    getUpcomingInterviews
+    getUpcomingInterviews,
+    getInterviewerWorkload
    
 };
