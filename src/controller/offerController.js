@@ -96,6 +96,80 @@ exports.updateOffer = async (req, res) => {
     }
   };
   
+  
+  exports.managerApproveOffer = async (req, res) => {
+    try {
+        const { offerId } = req.params;
+        const { action, updatedBy } = req.body; // action = "ACCEPT" hoặc "REJECT"
+
+        console.log(" Nhận yêu cầu duyệt offer:", { offerId, action, updatedBy });
+
+        const offer = await Offer.findById(offerId);
+        if (!offer) {
+            return res.status(404).json({ message: "Offer not found" });
+        }
+
+        console.log(" Offer tìm thấy:", offer);
+
+        if (offer.status !== "PENDING" || !offer.approvalRequired) {
+            return res.status(400).json({ message: "Offer is not pending approval" });
+        }
+
+        // Lấy thông tin recruitment
+        const recruitmentData = await Recruitment.findById(offer.recruitmentId).lean();
+        console.log(" Dữ liệu tuyển dụng:", recruitmentData);
+
+        if (!recruitmentData) {
+            return res.status(404).json({ message: "Không tìm thấy thông tin tuyển dụng." });
+        }
+
+        if (!recruitmentData.candidateId) {
+            console.log(" Lỗi: recruitmentData.candidateId bị undefined!");
+            return res.status(400).json({ message: "Dữ liệu tuyển dụng không có candidateId." });
+        }
+
+        // Lấy danh sách ứng viên đã vượt phỏng vấn
+        const candidates = await fetchCandidatesPassedInterview();
+        console.log(" Danh sách ứng viên vượt phỏng vấn:", candidates);
+
+        if (!candidates || !Array.isArray(candidates) || candidates.length === 0) {
+            return res.status(404).json({ message: "Không tìm thấy danh sách ứng viên." });
+        }
+
+        // Tìm ứng viên trong danh sách đã vượt phỏng vấn
+        const candidate = candidates.find((c) => c._id?.toString() === recruitmentData.candidateId?.toString());
+
+        if (!candidate) {
+            console.log(" Không tìm thấy ứng viên trong danh sách!", { candidateId: recruitmentData.candidateId });
+            return res.status(404).json({ message: "Không tìm thấy ứng viên." });
+        }
+
+        console.log(" Ứng viên tìm thấy:", candidate);
+
+        if (action === "ACCEPT") {
+            offer.salary = offer.negotiatedSalary;
+            offer.status = "SENT";
+            offer.managerStatus = "APPROVED";
+        } else if (action === "REJECT") {
+            offer.negotiatedSalary = null;
+            offer.status = "SENT";
+            offer.managerStatus = "REJECTED";
+        } else {
+            return res.status(400).json({ message: "Invalid action" });
+        }
+
+        offer.approvalRequired = false; // Đã duyệt xong
+        offer.updatedBy = updatedBy;
+        await offer.save();
+
+        await sendSalaryProposalEmail(candidate, offer);
+
+        res.status(200).json({ message: `Offer ${action} by manager and email sent`, offer });
+    } catch (error) {
+        console.error(" Lỗi khi duyệt offer:", error);
+        return res.status(500).json({ message: "Lỗi server", error: error.message });
+    }
+};
 
   
   
