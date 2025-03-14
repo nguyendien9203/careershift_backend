@@ -23,7 +23,23 @@ const getInterviewsByRecruitment = async (req, res) => {
     }
 };
 
+// Xem các phỏng vấn sắp tới
+const getUpcomingInterviews = async (req, res) => {
+    try {
+        const today = new Date();
+        const interviews = await Interview.find({ date: { $gte: today } })
+            .populate('stages.interviewerIds', 'name email')
+            .populate('recruitmentId', 'candidateId jobId');
+
+        res.status(200).json({ success: true, count: interviews.length, data: interviews });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+};
+
+
 module.exports = {
     getInterviewsByRecruitment,
+    getUpcomingInterviews
    
 };
