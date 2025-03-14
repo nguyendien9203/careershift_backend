@@ -26,7 +26,10 @@ router.delete("/interviews/:id", deleteInterview);
 
 // Cập nhật lịch phỏng vấn
 router.put("/UpdateInterviews/:id", updateInterview);
-
+//Send email cho ứng viên 
 router.post('/send-interview-invitation', sendInterviewInvitation);
+
+// xem lịch phỏng vấn theo recruiment
+router.get('/recruitment/:recruitmentId', getInterviewsByRecruitment);
 
 module.exports = router;
