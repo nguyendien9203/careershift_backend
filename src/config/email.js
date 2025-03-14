@@ -1,5 +1,5 @@
 const nodemailer = require("nodemailer");
-const OTP = require("../models/otp.model");
+const redis = require("./redis");
 require("dotenv").config();
 
 const transporter = nodemailer.createTransport({
@@ -32,14 +32,19 @@ exports.sendEmail = async (to, subject, htmlContent) => {
   }
 };
 
+exports.generateOTP = async (email) => {
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  await redis.set(`otp:${email}`, otp, "EX", 120); //2m
+  return otp;
+};
+
+exports.generateTempPassword = () => {
+  return Math.random().toString(36).slice(-8); // Example: "xA1b2c3d"
+};
+
 exports.sendOTPToUser = async (user) => {
   try {
-    await OTP.deleteMany({ userId: user._id });
-
-    const otp = Math.floor(100000 + Math.random() * 900000);
-    const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
-
-    await OTP.create({ userId: user._id, value: otp, expiresAt: expiresAt });
+    const otp = await this.generateOTP(user.email);
 
     const htmlContent = `
       <h2>Xác thực tài khoản</h2>
@@ -50,6 +55,31 @@ exports.sendOTPToUser = async (user) => {
     await this.sendEmail(user.email, "Xác thực tài khoản", htmlContent);
 
     return { success: true, message: "OTP đã được gửi thành công" };
+  } catch (error) {
+    return { success: false, message: error };
+  }
+};
+
+exports.sendTempPasswordToUser = async (name, email) => {
+  try {
+    const tempPassword = this.generateTempPassword();
+
+    const htmlContent = `
+      <h2>Mật khẩu tạm thời của bạn</h2>
+      <p>Xin chào <strong>${name}</strong>,</p>
+      <p>Hệ thống đã khởi tạo lại mật khẩu của bạn. Vui lòng đăng nhập bằng mật khẩu tạm thời sau:</p>
+      <p><strong>${tempPassword}</strong></p>
+      <p>Vui lòng đổi mật khẩu ngay sau khi đăng nhập.</p>
+      <p>Cảm ơn bạn!</p>
+    `;
+
+    await this.sendEmail(email, "Mật khẩu tạm thời của bạn", htmlContent);
+
+    return {
+      success: true,
+      message: "Mật khẩu tạm thời đã gửi thành công",
+      tempPassword,
+    };
   } catch (error) {
     return { success: false, message: error };
   }

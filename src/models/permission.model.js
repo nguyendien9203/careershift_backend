@@ -12,6 +12,7 @@ const permissionSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    category: String,
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Role = require("./role.model");
+const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
@@ -20,7 +21,7 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      minLength: [6, "Password must have at least 6 characters"],
+      minLength: [8, "Password must have at least 8 characters"],
     },
     name: {
       type: String,
@@ -68,5 +69,17 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// hashed password
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 module.exports = mongoose.model("User", userSchema);
