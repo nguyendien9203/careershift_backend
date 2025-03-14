@@ -4,6 +4,6 @@ const {  updateOffer, createAndSendOffer, managerApproveOffer, hrUpdateOfferStat
 
 router.post("/create", createAndSendOffer);
 router.put("/update/:offerId", updateOffer);
-router.put("/offers/:offerId/approve", managerApproveOffer);
-router.put("/offers/:offerId/status", hrUpdateOfferStatus);
+router.put("/offers/:offerId", managerApproveOffer);
+router.put("/offers/status/:offerId", hrUpdateOfferStatus);
 module.exports = router;
