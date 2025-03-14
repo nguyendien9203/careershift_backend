@@ -13,7 +13,7 @@ const {getInterviewsByRecruitment,
     getInterviewStages} = require("../controllers/interviewManagementController")
 const {assignInterviewers,removeInterviewer} = require("../controllers/interviewAssignmentController")
 
-const {viewEvaluations, submitEvaluation,getEvaluationSummary } = require("../controllers/interviewEvaluationController");
+const {viewEvaluations, submitEvaluation,getEvaluationSummary ,updatePassFail} = require("../controllers/interviewEvaluationController");
 
 const router = express.Router();
 
@@ -58,4 +58,7 @@ router.get('/view-evaluations/:interviewId/:interviewerId', viewEvaluations);
 
 // Tổng hợp kết quả phỏng vấn theo ứng viên, người phỏng vấn, score, và comment
 router.get('/evaluation-summary/:interviewId', getEvaluationSummary); 
+
+//Update pass/fail từng vòng phỏng vấn
+router.put("/update-pass-fail", updatePassFail);
 module.exports = router;
