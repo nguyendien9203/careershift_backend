@@ -19,3 +19,22 @@ exports.generateRefreshToken = async (user) => {
 exports.invalidateUserTokens = async (userId) => {
   await redis.del(`refreshToken:${userId}`);
 };
+
+exports.blacklistAccessToken = async (token) => {
+  try {
+    const decoded = jwt.decode(token);
+    const expiresIn = decoded.exp * 1000 - Date.now();
+
+    if (expiresIn > 0) {
+      await redis.set(
+        `blacklist:${token}`,
+        "invalid",
+        "EX",
+        Math.floor(expiresIn / 1000)
+      );
+      console.log(`AccessToken bị vô hiệu hóa: ${token}`);
+    }
+  } catch (error) {
+    console.error("Lỗi khi blacklist token:", error);
+  }
+};
