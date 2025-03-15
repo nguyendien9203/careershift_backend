@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const redis = require("../config/redis");
 const { sendOTPToUser } = require("../config/email");
 const { generateAccessToken, generateRefreshToken } = require("../config/jwt");
-const UserStatus = require("../utils");
+const { UserStatus } = require("../constants");
 const User = require("../models/user.model");
 
 // Helper login failed
@@ -24,19 +24,23 @@ exports.login = async (req, res) => {
 
     if (!user) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: StatusCodes.UNAUTHORIZED,
         message: "Tài khoản không tồn tại",
       });
     }
 
-    if (!user.verified) {
-      return res.status(StatusCodes.UNPROCESSABLE_ENTITY).json({
-        message:
-          "Tài khoản chưa được xác thực. Vui lòng kiểm tra email để nhận mã OTP",
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      await handleFailedLogin(user);
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: StatusCodes.UNAUTHORIZED,
+        message: "Mật khẩu không chính xác",
       });
     }
 
-    if (user.status === UserStatus.LOCKED && !user.lockedUntil) {
+    if (user.status === UserStatus.INACTIVE && !user.lockedUntil) {
       return res.status(StatusCodes.FORBIDDEN).json({
+        status: StatusCodes.FORBIDDEN,
         message: "Tài khoản bị vô hiệu hóa",
       });
     }
@@ -47,17 +51,19 @@ exports.login = async (req, res) => {
       user.lockedUntil > Date.now()
     ) {
       return res.status(StatusCodes.LOCKED).json({
+        status: StatusCodes.LOCKED,
         message: `Tài khoản bị khóa tạm thời. Vui lòng thử lại sau ${Math.ceil(
           (user.lockedUntil - Date.now()) / 60000
         )} phút`,
       });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      await handleFailedLogin(user);
-      return res.status(StatusCodes.UNAUTHORIZED).json({
-        message: "Mật khẩu không chính xác",
+    if (!user.verified) {
+      await sendOTPToUser(user);
+      return res.status(StatusCodes.UNPROCESSABLE_ENTITY).json({
+        status: StatusCodes.UNPROCESSABLE_ENTITY,
+        message:
+          "Tài khoản chưa được xác thực. Vui lòng kiểm tra email để nhận mã OTP",
       });
     }
 
@@ -76,13 +82,14 @@ exports.login = async (req, res) => {
     });
 
     return res.status(StatusCodes.OK).json({
+      status: StatusCodes.OK,
       message: "Đăng nhập thành công",
       accessToken,
     });
   } catch (error) {
-    console.error(error);
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      message: "Lỗi server",
+      status: StatusCodes.INTERNAL_SERVER_ERROR,
+      message: error.message,
     });
   }
 };
@@ -92,6 +99,7 @@ exports.refreshToken = async (req, res) => {
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: StatusCodes.UNAUTHORIZED,
         message: "Refresh token không hợp lệ, vui lòng đăng nhập lại",
       });
     }
@@ -101,22 +109,28 @@ exports.refreshToken = async (req, res) => {
 
     if (!storedToken || storedToken !== refreshToken) {
       return res.status(StatusCodes.FORBIDDEN).json({
+        status: StatusCodes.FORBIDDEN,
         message: "Refresh token không hợp lệ",
       });
     }
 
     const newAccessToken = await generateAccessToken({ _id: decoded.id });
-    return res.status(StatusCodes.OK).json({ accessToken: newAccessToken });
+    return res.status(StatusCodes.OK).json({
+      status: StatusCodes.OK,
+      message: "Refresh token thành công",
+      accessToken: newAccessToken,
+    });
   } catch (error) {
-    console.error(error);
     if (error.name === "TokenExpiredError") {
-      return res
-        .status(StatusCodes.UNAUTHORIZED)
-        .json({ message: "Refresh token hết hạn" });
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: StatusCodes.UNAUTHORIZED,
+        message: "Refresh token hết hạn",
+      });
     }
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ message: "Lỗi server" });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: StatusCodes.INTERNAL_SERVER_ERROR,
+      message: error.message,
+    });
   }
 };
 
@@ -127,12 +141,14 @@ exports.sendOTP = async (req, res) => {
 
     if (!user) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: StatusCodes.UNAUTHORIZED,
         message: "Tài khoản không tồn tại",
       });
     }
 
     if (user.verified) {
       return res.status(StatusCodes.BAD_REQUEST).json({
+        status: StatusCodes.BAD_REQUEST,
         message: "Tài khoản đã xác thực",
       });
     }
@@ -140,17 +156,21 @@ exports.sendOTP = async (req, res) => {
     const result = await sendOTPToUser(user);
 
     if (result.success) {
-      return res.status(StatusCodes.OK).json({ message: result.message });
+      return res.status(StatusCodes.OK).json({
+        status: StatusCodes.OK,
+        message: result.message,
+      });
     } else {
-      return res
-        .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .json({ message: result.message });
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        status: StatusCodes.INTERNAL_SERVER_ERROR,
+        message: result.message,
+      });
     }
   } catch (error) {
-    console.error(error);
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ message: "Lỗi server" });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: StatusCodes.INTERNAL_SERVER_ERROR,
+      message: error.message,
+    });
   }
 };
 
@@ -161,6 +181,7 @@ exports.verifyOTP = async (req, res) => {
 
     if (!user) {
       return res.status(StatusCodes.NOT_FOUND).json({
+        status: StatusCodes.NOT_FOUND,
         message: "Người dùng không tồn tại",
       });
     }
@@ -169,14 +190,16 @@ exports.verifyOTP = async (req, res) => {
 
     if (!storedOTP) {
       return res.status(StatusCodes.BAD_REQUEST).json({
+        status: StatusCodes.BAD_REQUEST,
         message: "OTP đã hết hạn, vui lòng yêu cầu lại",
       });
     }
 
     if (storedOTP !== otp) {
-      return res
-        .status(StatusCodes.BAD_REQUEST)
-        .json({ message: "OTP không hợp lệ" });
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: StatusCodes.BAD_REQUEST,
+        message: "OTP không hợp lệ",
+      });
     }
 
     await redis.del(`otp:${email}`);
@@ -184,25 +207,15 @@ exports.verifyOTP = async (req, res) => {
     user.verified = true;
     await user.save();
 
-    const accessToken = await generateAccessToken(user);
-    const refreshToken = await generateRefreshToken(user);
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "Strict",
-      maxAge: 24 * 60 * 60 * 1000, // 1d
-    });
-
     return res.status(StatusCodes.OK).json({
+      status: StatusCodes.OK,
       message: "Xác thực thành công",
-      accessToken,
     });
   } catch (error) {
-    console.error(error);
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ message: "Lỗi server" });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: StatusCodes.INTERNAL_SERVER_ERROR,
+      message: error.message,
+    });
   }
 };
 
@@ -217,11 +230,14 @@ exports.logout = async (req, res) => {
       sameSite: "Strict",
     });
 
-    return res.status(StatusCodes.OK).json({ message: "Đăng xuất thành công" });
+    return res.status(StatusCodes.OK).json({
+      status: StatusCodes.OK,
+      message: "Đăng xuất thành công",
+    });
   } catch (error) {
-    console.error(error);
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ message: "Lỗi server" });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: StatusCodes.INTERNAL_SERVER_ERROR,
+      message: error.message,
+    });
   }
 };
