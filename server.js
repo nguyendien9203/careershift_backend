@@ -1,13 +1,3 @@
-<<<<<<< HEAD
-const app = require("./src/app");
-const connectDB = require("./src/config/db");
-
-app.listen(process.env.PORT , () => {
-
-    console.log(`Server running at http://localhost:${process.env.PORT } `);
-    connectDB();
-})
-=======
 const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
@@ -53,4 +43,3 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   connectDB();
 });
->>>>>>> develop
