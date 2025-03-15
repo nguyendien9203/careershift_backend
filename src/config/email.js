@@ -84,3 +84,38 @@ exports.sendTempPasswordToUser = async (name, email) => {
     return { success: false, message: error };
   }
 };
+
+exports.sendInterviewEmailToCandidate = async (
+  candidate,
+  position,
+  deadline
+) => {
+  try {
+    const htmlContent = `
+      <div>
+        <h3>Chào ${candidate.name},</h3>
+        <p>Chúng tôi rất vui khi nhận được hồ sơ ứng tuyển của bạn cho vị trí <strong>${position}</strong> tại <strong>Công ty CareerShift</strong>.</p>
+        <p>Sau khi xem xét hồ sơ, chúng tôi muốn mời bạn tham gia phỏng vấn cho vị trí này.</p>
+        <p>Vui lòng xác nhận tham gia phỏng vấn bằng cách phản hồi email này <strong>trước ${deadline}</strong>.</p>
+        <p><strong>Lưu ý:</strong> Nếu chúng tôi không nhận được phản hồi từ bạn trước thời hạn trên, chúng tôi sẽ mặc định rằng bạn từ chối lời mời phỏng vấn.</p>
+        <p>Sau khi bạn xác nhận, chúng tôi sẽ gửi thông tin chi tiết về lịch trình và hình thức phỏng vấn.</p>
+        <p>Nếu có bất kỳ thắc mắc nào, đừng ngần ngại liên hệ với chúng tôi qua email <strong>carrershift@gmail.com</strong> hoặc số điện thoại <strong>0123456789</strong>.</p>
+        <p>Chúng tôi mong sớm nhận được phản hồi từ bạn!</p>
+        <p>Trân trọng,</p>
+        <p><strong>Công ty CareerShift</strong></p>
+      </div>
+    `;
+
+    await this.sendEmail(
+      candidate.email,
+      `Lời mời xác nhận phỏng vấn vị trí ${position}`,
+      htmlContent
+    );
+    return {
+      success: true,
+      message: "Gửi lời mời phỏng vấn thành công",
+    };
+  } catch (error) {
+    return { success: false, message: error };
+  }
+};

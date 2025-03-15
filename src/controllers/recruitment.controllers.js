@@ -1,11 +1,12 @@
 const Candidate = require("../models/candidate.model");
 const Recruitment = require("../models/recruitment.model");
+const Job = require("../models/job.model");
 const { RecruitmentStage, RecruitmentStatus } = require("../constants/index");
+const { sendInterviewEmailToCandidate } = require("../config/email");
 
 exports.applyForJob = async (req, res) => {
   try {
     const jobId = req.params.jobId;
-    console.log(jobId);
     const { candidate, cvFile, notes, createdBy, updatedBy } = req.body;
 
     if (!candidate || !candidate.email) {
@@ -99,135 +100,78 @@ exports.deleteRecruitment = async (req, res) => {
   }
 };
 
+exports.sendInterviewInvitation = async (req, res) => {
+  try {
+    const { deadline } = req.body;
+
+    if (!deadline) {
+      return res.status(400).json({
+        message: "Vui lòng nhập thời hạn phản hồi lời mời phỏng vấn.",
+      });
+    }
+
+    const recruitment = await Recruitment.findById(req.params.recruitmentId);
+    if (!recruitment) {
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy thông tin tuyển dụng" });
+    }
+
+    const job = await Job.findById(recruitment.jobId);
+    if (!job) {
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy vị trí công việc" });
+    }
+
+    const candidate = await Candidate.findById(recruitment.candidateId);
+    if (!candidate) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy thông tin ứng viên" });
+    }
+
+    const { success, message } = await sendInterviewEmailToCandidate(
+      candidate,
+      job.title,
+      deadline
+    );
+
+    if (!success) return res.status(500).json({ message: message });
+
+    return res.status(200).json({ message: message });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.updateRecruitmentStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({
+        message: "Vui lòng nhập trạng thái ứng tuyển",
+      });
+    }
+
+    const recruitment = await Recruitment.findById(req.params.recruitmentId);
+    if (!recruitment) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy thông tin tuyển dụng",
+      });
+    }
+
+    recruitment.status = status;
+    await recruitment.save();
+
+    return res.status(200).json({
+      message: `Đã cập nhật trạng thái tuyển dụng thành ${status}`,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // api update cái ứng tuyển đó
-// api chấp nhận ứng viên
-// api từ chối ứng viên
-
-// Create candidate
-// exports.createCandidate = async (req, res) => {
-//   // Decode the token and get the user id there
-//   // let token = req.headers.authorization;
-//   try {
-//     const { name, email, phone, source, cvFile, createdBy, updatedBy } =
-//       req.body;
-//     if (
-//       await Candidate.findOne({
-//         $or: [{ email }, { phone }],
-//       })
-//     ) {
-//       const candidate = await Candidate.findOne({ email });
-//       candidate.cvFile = cvFile;
-//       candidate.updatedBy = updatedBy;
-//       await candidate.save();
-//       return res.status(200).json({
-//         message: "Candidate already exists ",
-//         data: candidate,
-//       });
-//     }
-//     const newCandidate = new Candidate({
-//       name,
-//       email,
-//       phone,
-//       cvFile,
-//       source,
-//       createdBy,
-//       updatedBy,
-//     });
-//     await newCandidate.save();
-//     res
-//       .status(201)
-//       .json({ message: "Candidate created successfully", data: newCandidate });
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// };
-
-// Update candidate
-// exports.updateCandidate = async (req, res) => {
-//   // Decode the token and get the user id there
-//   // let token = req.headers.authorization;
-//   // updatedBy = req.user._id;
-//   const candidate = await Candidate.findById(req.params.id);
-//   // Check if candidate exists
-//   if (!candidate) {
-//     return res.status(404).json({ message: "Candidate not found" });
-//   }
-//   try {
-//     await candidate.updateOne(req.body);
-//     data = await Candidate.findById(req.params.id);
-//     res
-//       .status(200)
-//       .json({ message: "Candidate updated successfully", data: data });
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// };
-
-// // Delete candidate
-// exports.deleteCandidate = async (req, res) => {
-//   try {
-//     const candidate = await Candidate.findById(req.params.id);
-//     if (!candidate) {
-//       return res.status(404).json({ message: "Candidate not found" });
-//     }
-//     await candidate.deleteOne();
-//     res
-//       .status(200)
-//       .json({ message: "Candidate deleted successfully", data: candidate });
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// };
-
-// // Get all candidates
-// exports.getAllCandidates = async (req, res) => {
-//   try {
-//     const candidates = await Candidate.find();
-//     if (candidates.length === 0) {
-//       return res.status(404).json({ message: "No candidates found" });
-//     }
-//     res
-//       .status(200)
-//       .json({ message: "Candidates fetched successfully", data: candidates });
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// };
-
-// // Get candidate by id
-// exports.getCandidateById = async (req, res) => {
-//   try {
-//     const candidate = await Candidate.findById(req.params.id);
-//     if (!candidate) {
-//       return res.status(404).json({ message: "Candidate not found" });
-//     }
-//     res
-//       .status(200)
-//       .json({ message: "Candidate fetched successfully", data: candidate });
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// };
-
-// exports.getCandidateByUserCreatedId = async (req, res) => {
-//   try {
-//     const candidates = await Candidate.find({ createdBy: req.params.id })
-//       .populate("createdBy", "name")
-//       .populate("updatedBy", "name")
-//       .lean();
-//     const formattedCandidates = candidates.map((candidate) => ({
-//       ...candidate,
-//       createdBy: candidate.createdBy.name,
-//       updatedBy: candidate.updatedBy.name,
-//     }));
-//     if (candidates.length === 0) {
-//       return res.status(404).json({ message: "No candidates found" });
-//     }
-//     res.status(200).json({
-//       message: "Candidates fetched successfully",
-//       data: formattedCandidates,
-//     });
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// };
