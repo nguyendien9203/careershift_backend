@@ -33,16 +33,6 @@ const candidateSchema = new mongoose.Schema(
         message: (props) => `${props.value} is not a valid phone number`,
       },
     },
-    cvFile : [{
-      fileName : {
-        type: String,
-        required: [true, "CV file name is required"],
-      },
-      uploadedAt: {
-        type: Date,
-        default: Date.now,
-      }
-    }],
     source: {
       type: String,
       enum: {
