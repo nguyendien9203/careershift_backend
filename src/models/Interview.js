@@ -7,10 +7,20 @@ const evaluationSchema = new mongoose.Schema({
     required: [true, "Interviewer ID is required for evaluation"],
   },
   score: {
-    type: Number, // Thay từ Map thành Number
-    min: [0, "Score must be between 0 and 10"],
-    max: [10, "Score must be between 0 and 10"],
-    required: [true, "Score is required"], // Thêm required nếu cần
+    type: Map,
+    of: {
+      type: Number,
+      min: [0, "Score must be between 0 and 10"],
+      max: [10, "Score must be between 0 and 10"],
+    },
+    validate: {
+      validator: function (scores) {
+        return Object.values(scores).every(
+          (score) => score >= 0 && score <= 10
+        );
+      },
+      message: "All scores must be between 0 and 10",
+    },
   },
   comments: {
     type: String,

@@ -61,16 +61,16 @@ const getInterviewById = async (req, res) => {
 
 const createInterview = async (req, res) => {
   try {
-    const { recruitmentId, stages, date, time, mode, address, google_meet_link } = req.body;
+    const { recruitmentId, finalStatus, date, time, mode, address, google_meet_link } = req.body;
 
     console.log("Received recruitmentId:", recruitmentId); // Debug log
 
     // Validate recruitmentId format
     if (!mongoose.Types.ObjectId.isValid(recruitmentId)) {
-      return res.status(400).json({ success: false, message: "Id isValid" });
+      return res.status(400).json({ success: false, message: "Invalid recruitment ID format" });
     }
 
-    // Check if recruitment exists by ObjectId
+    // Check if recruitment exists and has INTERVIEW status
     const recruitment = await Recruitment.findById(recruitmentId);
     console.log("Found recruitment:", recruitment); // Debug log
     if (!recruitment) {
@@ -80,32 +80,59 @@ const createInterview = async (req, res) => {
       });
     }
 
-    // Parse stages if it's a string
-    const parsedStages = Array.isArray(stages) ? stages : JSON.parse(stages);
+    // Check recruitment status
+    if (recruitment.status !== "INTERVIEW") {
+      return res.status(400).json({
+        success: false,
+        message: "Chỉ có thể tạo lịch phỏng vấn khi recruitment ở trạng thái INTERVIEW",
+      });
+    }
 
-    // Validate each stage
-    for (const stage of parsedStages) {
-      if (!stage.round || !stage.type || !Array.isArray(stage.interviewerIds)) {
-        return res.status(400).json({ success: false, message: "Invalid stage format" });
+    // Validate required fields
+    if (!date || !time || !mode) {
+      return res.status(400).json({
+        success: false,
+        message: "Date, time, and mode are required",
+      });
+    }
+
+    // Validate mode
+    if (!["ONLINE", "OFFLINE"].includes(mode)) {
+      return res.status(400).json({
+        success: false,
+        message: "Mode must be either ONLINE or OFFLINE",
+      });
+    }
+
+    // Handle mode-specific validations
+    let finalGoogleMeetLink = google_meet_link;
+    let finalAddress = address;
+
+    if (mode === "ONLINE") {
+      // Không bắt buộc phải có google_meet_link, nhưng nếu có thì lưu lại
+      finalAddress = undefined; // Clear address for ONLINE mode
+    } else if (mode === "OFFLINE") {
+      if (!address) {
+        return res.status(400).json({
+          success: false,
+          message: "Address is required for OFFLINE mode",
+        });
       }
-      const interviewers = await User.find({ _id: { $in: stage.interviewerIds } });
-      if (interviewers.length !== stage.interviewerIds.length) {
-        return res.status(400).json({ success: false, message: "Invalid interviewer IDs" });
-      }
-      stage.evaluations = [];
+      finalGoogleMeetLink = undefined; // Clear Google Meet link for OFFLINE mode
     }
 
     // Create new interview
     const newInterview = new Interview({
       recruitmentId,
-      stages: parsedStages,
+      finalStatus: finalStatus || "IN_PROGRESS",
       date,
       time,
       mode,
-      address: mode === "OFFLINE" ? address : undefined,
-      google_meet_link: mode === "ONLINE" ? google_meet_link : undefined,
+      address: finalAddress,
+      google_meet_link: finalGoogleMeetLink,
       createdBy: req.user?._id,
       updatedBy: req.user?._id,
+      stages: [], // Khởi tạo stages rỗng (có thể thêm logic để tạo stages nếu cần)
     });
 
     const savedInterview = await newInterview.save();
@@ -124,8 +151,6 @@ const createInterview = async (req, res) => {
     });
   }
 };
-
-
 
 
 
@@ -255,6 +280,97 @@ const updateInterview = async (req, res) => {
   }
 };
 
+// Tạo vòng phỏng vấn cho lịch phỏng vấn
+const createInterviewStage = async (req, res) => {
+  try {
+    const { interviewId, round, type, interviewerIds } = req.body;
+
+    // Validate interviewId format
+    if (!mongoose.Types.ObjectId.isValid(interviewId)) {
+      return res.status(400).json({ success: false, message: "Invalid interview ID format" });
+    }
+
+    // Check if interview exists
+    const interview = await Interview.findById(interviewId);
+    if (!interview) {
+      return res.status(404).json({
+        success: false,
+        message: `Không tìm thấy interview với ID: ${interviewId}`,
+      });
+    }
+
+    // Validate required fields
+    if (!round || !type || !Array.isArray(interviewerIds) || interviewerIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Round, type, and interviewerIds are required",
+      });
+    }
+
+    // Validate round number
+    if (round < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Round number must be at least 1",
+      });
+    }
+
+    // Check if stage with same round already exists
+    const existingStage = interview.stages.find((stage) => stage.round === round);
+    if (existingStage) {
+      return res.status(400).json({
+        success: false,
+        message: `Stage with round ${round} already exists`,
+      });
+    }
+
+    // Validate interview type
+    const validTypes = ["HR_SCREENING", "TECHNICAL_INTERVIEW", "FINAL_INTERVIEW"];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid interview type. Must be one of: HR_SCREENING, TECHNICAL_INTERVIEW, FINAL_INTERVIEW",
+      });
+    }
+
+    // Validate interviewerIds
+    const interviewers = await User.find({ _id: { $in: interviewerIds } });
+    if (interviewers.length !== interviewerIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: "One or more interviewer IDs are invalid",
+      });
+    }
+
+    // Create new stage
+    const newStage = {
+      round,
+      type,
+      interviewerIds,
+      status: "SCHEDULED",
+      evaluations: [], // Khởi tạo evaluations rỗng
+    };
+
+    // Add stage to interview
+    interview.stages.push(newStage);
+    await interview.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "Interview stage created successfully",
+      data: newStage,
+    });
+  } catch (error) {
+    console.error("Error creating interview stage:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while creating interview stage",
+      error: error.message,
+    });
+  }
+};
+
+
 
 
 module.exports = {
@@ -263,5 +379,6 @@ module.exports = {
   createInterview,
   updateInterviewStage,
   deleteInterview,
-  updateInterview
+  updateInterview,
+  createInterviewStage
 };

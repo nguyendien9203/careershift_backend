@@ -1,21 +1,22 @@
 const express = require("express");
+const router = express.Router();
 const { getInterviews,
     getInterviewById,
     createInterview,
     updateInterviewStage, 
     deleteInterview,
-    updateInterview, } = require("../controllers/interviewController");
+    updateInterview, createInterviewStage} = require("../controllers/interviewController");
 
-const {sendInterviewInvitation} = require("../controllers/sendEmailController")
+const {sendInterviewInvitation,cancelInterview} = require("../controllers/sendEmailController")
 const {getInterviewsByRecruitment,
     getUpcomingInterviews,
     getInterviewerWorkload,
-    getInterviewStages} = require("../controllers/interviewManagementController")
+    getInterviewStages,updateInterviewMode,updateInterviewDateTime} = require("../controllers/interviewManagementController")
 const {assignInterviewers,removeInterviewer} = require("../controllers/interviewAssignmentController")
 
-const {viewEvaluations, submitEvaluation,getEvaluationSummary } = require("../controllers/interviewEvaluationController");
+const {viewEvaluations,getEvaluationSummary ,updatePassFail} = require("../controllers/interviewEvaluationController");
 
-const router = express.Router();
+
 
 // Route lấy danh sách lịch phỏng vấn
 router.get("/interviews", getInterviews);
@@ -50,12 +51,24 @@ router.put('/remove-interviewer', removeInterviewer);
 //Xem chi tiết các vòng phỏng vấn
 router.get('/stages/:interviewId', getInterviewStages);
 
-// Gửi đánh giá
-router.post('/submit-evaluation', submitEvaluation);
-
 // Xem đánh giá của một người phỏng vấn trong một phỏng vấn 
 router.get('/view-evaluations/:interviewId/:interviewerId', viewEvaluations); 
 
-// Tổng hợp kết quả phỏng vấn theo ứng viên, người phỏng vấn, score, và comment
-router.get('/evaluation-summary/:interviewId', getEvaluationSummary); 
+// Tổng hợp kết quả phỏng vấn tất cả ứng viên, người phỏng vấn, score, và comment
+router.get("/evaluation-summary/all", getEvaluationSummary);
+
+//Update pass/fail từng vòng phỏng vấn
+router.put("/update-pass-fail", updatePassFail);
+
+//Update mode Online/Offline
+router.put("/update-mode/:interviewId", updateInterviewMode);
+
+//Hủy lịch phỏng vấn finalStatus: CANCELED và send email
+router.put("/cancel/:interviewId", cancelInterview);
+//Tạo vòng phỏng vấn cho lịch phỏng vấn
+router.post("/createInterviewStage", createInterviewStage);
+//Update thời gian phỏng vấn và check trùng của
+router.post("/updateInterviewDateTime", updateInterviewDateTime);
+
+
 module.exports = router;
