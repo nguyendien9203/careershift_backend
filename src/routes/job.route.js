@@ -14,7 +14,7 @@ const { authenticateToken } = require("../middlewares/auth.middleware");
 jobRouter.post("/", createJob);
 jobRouter.get("/", getJobs);
 jobRouter.get("/:id", getJobById);
-jobRouter.put("/:id/update-job", updateJob);
+jobRouter.put("/:id", updateJob);
 jobRouter.delete("/:id", deleteJob);
 jobRouter.get("/user/:id", getJobsByUserId);
 

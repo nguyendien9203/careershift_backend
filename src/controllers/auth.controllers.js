@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const redis = require("../config/redis");
 const { sendOTPToUser } = require("../config/email");
 const { generateAccessToken, generateRefreshToken } = require("../config/jwt");
-const UserStatus = require("../utils");
+const { UserStatus } = require("../constants");
 const User = require("../models/user.model");
 
 // Helper login failed
