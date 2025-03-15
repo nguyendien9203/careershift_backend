@@ -3,7 +3,7 @@ const { StatusCodes } = require("http-status-codes");
 const User = require("../models/user.model");
 const Role = require("../models/role.model");
 const Permission = require("../models/permission.model");
-const UserStatus = require("../utils");
+const { UserStatus } = require("../constants");
 const { sendTempPasswordToUser } = require("../config/email");
 const { invalidateUserTokens, blacklistAccessToken } = require("../config/jwt");
 
