@@ -1,5 +1,5 @@
 const sendMail = require("../config/mailer");
-const Candidate = require("../models /Candidate");
+const Candidate = require("../models/candidate.model");
 
 exports.sendInterviewEmail = async (req, res) => {
   try {
