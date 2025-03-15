@@ -76,3 +76,54 @@ exports.updateCandidateStatus = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+exports.getCandidatesByStatus = async (req, res) => {
+  try {
+      const { status } = req.params;
+      if (!["AVAILABLE", "HIRED", "REJECTED"].includes(status)) {
+          return res.status(400).json({ message: "Trạng thái không hợp lệ!" });
+      }
+
+      const candidates = await Candidate.find({ status });
+      res.status(200).json({ success: true, data: candidates });
+  } catch (error) {
+      console.error("🔥 Lỗi khi lấy danh sách ứng viên:", error);
+      res.status(500).json({ success: false, message: "Lỗi server" });
+  }
+};
+
+exports.searchCandidates = async (req, res) => {
+  try {
+      const { keyword } = req.params; 
+
+      if (!keyword) {
+          return res.status(400).json({ message: "Vui lòng nhập từ khóa tìm kiếm" });
+      }
+
+      const candidates = await Candidate.find({
+          $or: [
+              { name: { $regex: keyword, $options: "i" } },
+              { email: { $regex: keyword, $options: "i" } }, 
+          ],
+      });
+
+      if (candidates.length === 0) {
+          return res.status(404).json({ message: "Không tìm thấy ứng viên" });
+      }
+
+      res.status(200).json({ success: true, data: candidates });
+  } catch (error) {
+      console.error("🔥 Lỗi khi tìm kiếm ứng viên:", error);
+      res.status(500).json({ success: false, message: "Lỗi server" });
+  }
+};
+
+exports.getPotentialCandidates = async (req, res) => {
+  try {
+      const candidates = await Candidate.find({ isPotential: true });
+      res.status(200).json({ success: true, data: candidates });
+  } catch (error) {
+      console.error("🔥 Lỗi khi lấy ứng viên tiềm năng:", error);
+      res.status(500).json({ success: false, message: "Lỗi server" });
+  }
+};
