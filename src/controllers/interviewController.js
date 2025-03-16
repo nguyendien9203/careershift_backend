@@ -1,15 +1,14 @@
-const Interview = require("../models/Interview");
-const Candidate = require("../models/Candidate");
-const User = require("../models/User");
-const Job = require("../models/Job");
-const Recruitment = require("../models/Recruitment");
+const Interview = require("../models/interview.model");
+const Candidate = require("../models/candidate.model");
+const User = require("../models/user.model");
+const Job = require("../models/job.model");
+const Recruitment = require("../models/recruitment.model");
 const mongoose = require("mongoose");
 
 // Get all interviews
 const getInterviews = async (req, res) => {
   try {
-    const interviews = await Interview.find()
-   
+    const interviews = await Interview.find();
 
     return res.status(200).json({
       success: true,
@@ -42,7 +41,9 @@ const getInterviewById = async (req, res) => {
       .populate("updatedBy", "name email");
 
     if (!interview) {
-      return res.status(404).json({ success: false, message: "Interview not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Interview not found" });
     }
 
     return res.status(200).json({ success: true, data: interview });
@@ -58,16 +59,25 @@ const getInterviewById = async (req, res) => {
 
 // Create new interview
 
-
 const createInterview = async (req, res) => {
   try {
-    const { recruitmentId, finalStatus, date, time, mode, address, google_meet_link } = req.body;
+    const {
+      recruitmentId,
+      finalStatus,
+      date,
+      time,
+      mode,
+      address,
+      google_meet_link,
+    } = req.body;
 
     console.log("Received recruitmentId:", recruitmentId); // Debug log
 
     // Validate recruitmentId format
     if (!mongoose.Types.ObjectId.isValid(recruitmentId)) {
-      return res.status(400).json({ success: false, message: "Invalid recruitment ID format" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid recruitment ID format" });
     }
 
     // Check if recruitment exists and has INTERVIEW status
@@ -84,7 +94,8 @@ const createInterview = async (req, res) => {
     if (recruitment.status !== "INTERVIEW") {
       return res.status(400).json({
         success: false,
-        message: "Chỉ có thể tạo lịch phỏng vấn khi recruitment ở trạng thái INTERVIEW",
+        message:
+          "Chỉ có thể tạo lịch phỏng vấn khi recruitment ở trạng thái INTERVIEW",
       });
     }
 
@@ -152,25 +163,31 @@ const createInterview = async (req, res) => {
   }
 };
 
-
-
 // Update interview stage
 const updateInterviewStage = async (req, res) => {
   try {
-    const { interviewId, round, interviewerId, score, comments, status } = req.body;
+    const { interviewId, round, interviewerId, score, comments, status } =
+      req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(interviewId) || !mongoose.Types.ObjectId.isValid(interviewerId)) {
+    if (
+      !mongoose.Types.ObjectId.isValid(interviewId) ||
+      !mongoose.Types.ObjectId.isValid(interviewerId)
+    ) {
       return res.status(400).json({ success: false, message: "Invalid ID" });
     }
 
     const interview = await Interview.findById(interviewId);
     if (!interview) {
-      return res.status(404).json({ success: false, message: "Interview not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Interview not found" });
     }
 
     const stage = interview.stages.find((s) => s.round === round);
     if (!stage) {
-      return res.status(404).json({ success: false, message: `Round ${round} not found` });
+      return res
+        .status(404)
+        .json({ success: false, message: `Round ${round} not found` });
     }
 
     if (!stage.interviewerIds.some((id) => id.equals(interviewerId))) {
@@ -180,14 +197,19 @@ const updateInterviewStage = async (req, res) => {
       });
     }
 
-    const evaluationIndex = stage.evaluations.findIndex((e) => e.interviewerId.equals(interviewerId));
+    const evaluationIndex = stage.evaluations.findIndex((e) =>
+      e.interviewerId.equals(interviewerId)
+    );
     if (evaluationIndex > -1) {
       stage.evaluations[evaluationIndex] = { interviewerId, score, comments };
     } else {
       stage.evaluations.push({ interviewerId, score, comments });
     }
 
-    if (status && ["SCHEDULED", "PASSED", "FAILED", "PENDING"].includes(status)) {
+    if (
+      status &&
+      ["SCHEDULED", "PASSED", "FAILED", "PENDING"].includes(status)
+    ) {
       stage.status = status;
     }
 
@@ -220,7 +242,9 @@ const deleteInterview = async (req, res) => {
 
     const interview = await Interview.findByIdAndDelete(id);
     if (!interview) {
-      return res.status(404).json({ success: false, message: "Interview not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Interview not found" });
     }
 
     return res.status(200).json({
@@ -249,7 +273,9 @@ const updateInterview = async (req, res) => {
 
     const interview = await Interview.findById(id);
     if (!interview) {
-      return res.status(404).json({ success: false, message: "Interview not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Interview not found" });
     }
 
     if (date) interview.date = date;
@@ -258,9 +284,17 @@ const updateInterview = async (req, res) => {
     if (mode === "OFFLINE") interview.address = address;
     if (mode === "ONLINE") interview.google_meet_link = google_meet_link;
 
-    const allPassed = interview.stages.every((stage) => stage.status === "PASSED");
-    const anyFailed = interview.stages.some((stage) => stage.status === "FAILED");
-    interview.finalStatus = anyFailed ? "COMPLETED" : allPassed ? "COMPLETED" : "IN_PROGRESS";
+    const allPassed = interview.stages.every(
+      (stage) => stage.status === "PASSED"
+    );
+    const anyFailed = interview.stages.some(
+      (stage) => stage.status === "FAILED"
+    );
+    interview.finalStatus = anyFailed
+      ? "COMPLETED"
+      : allPassed
+      ? "COMPLETED"
+      : "IN_PROGRESS";
 
     interview.updatedBy = req.user?._id;
     await interview.save();
@@ -287,7 +321,9 @@ const createInterviewStage = async (req, res) => {
 
     // Validate interviewId format
     if (!mongoose.Types.ObjectId.isValid(interviewId)) {
-      return res.status(400).json({ success: false, message: "Invalid interview ID format" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid interview ID format" });
     }
 
     // Check if interview exists
@@ -300,7 +336,12 @@ const createInterviewStage = async (req, res) => {
     }
 
     // Validate required fields
-    if (!round || !type || !Array.isArray(interviewerIds) || interviewerIds.length === 0) {
+    if (
+      !round ||
+      !type ||
+      !Array.isArray(interviewerIds) ||
+      interviewerIds.length === 0
+    ) {
       return res.status(400).json({
         success: false,
         message: "Round, type, and interviewerIds are required",
@@ -316,7 +357,9 @@ const createInterviewStage = async (req, res) => {
     }
 
     // Check if stage with same round already exists
-    const existingStage = interview.stages.find((stage) => stage.round === round);
+    const existingStage = interview.stages.find(
+      (stage) => stage.round === round
+    );
     if (existingStage) {
       return res.status(400).json({
         success: false,
@@ -325,11 +368,16 @@ const createInterviewStage = async (req, res) => {
     }
 
     // Validate interview type
-    const validTypes = ["HR_SCREENING", "TECHNICAL_INTERVIEW", "FINAL_INTERVIEW"];
+    const validTypes = [
+      "HR_SCREENING",
+      "TECHNICAL_INTERVIEW",
+      "FINAL_INTERVIEW",
+    ];
     if (!validTypes.includes(type)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid interview type. Must be one of: HR_SCREENING, TECHNICAL_INTERVIEW, FINAL_INTERVIEW",
+        message:
+          "Invalid interview type. Must be one of: HR_SCREENING, TECHNICAL_INTERVIEW, FINAL_INTERVIEW",
       });
     }
 
@@ -370,9 +418,6 @@ const createInterviewStage = async (req, res) => {
   }
 };
 
-
-
-
 module.exports = {
   getInterviews,
   getInterviewById,
@@ -380,5 +425,5 @@ module.exports = {
   updateInterviewStage,
   deleteInterview,
   updateInterview,
-  createInterviewStage
+  createInterviewStage,
 };

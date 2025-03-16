@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const Recruitment = require("./recruitment.model");
 
 const evaluationSchema = new mongoose.Schema({
   interviewerId: {

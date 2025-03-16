@@ -5,7 +5,7 @@ const roleRoutes = require("./role.route");
 const jobRoutes = require("./job.route");
 const s3Routes = require("./s3.route");
 const recruitmentRoutes = require("./recruitment.route");
-const interviewRoutes = require("./routes/interviewRoutes");
+const interviewRoutes = require("./interview.route");
 
 const router = express.Router();
 
