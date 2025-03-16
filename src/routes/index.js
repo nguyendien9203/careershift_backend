@@ -5,6 +5,7 @@ const roleRoutes = require("./role.route");
 const jobRoutes = require("./job.route");
 const s3Routes = require("./s3.route");
 const recruitmentRoutes = require("./recruitment.route");
+const interviewRoutes = require("./interview.route");
 
 const router = express.Router();
 
@@ -14,5 +15,6 @@ router.use("/roles", roleRoutes);
 router.use("/jobs", jobRoutes);
 router.use("/s3", s3Routes);
 router.use("/recruitments", recruitmentRoutes);
+router.use("/", interviewRoutes);
 
 module.exports = router;
