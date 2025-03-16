@@ -8,6 +8,7 @@ const recruitmentRoutes = require("./recruitment.route");
 const interviewRoutes = require('./interview.route');
 const candidateComparisonRoutes = require('./candidateComparison.route');
 
+
 const router = express.Router();
 
 router.use("/auth", authRoutes);
@@ -18,5 +19,6 @@ router.use("/s3", s3Routes);
 router.use("/recruitments", recruitmentRoutes);
 router.use("/interviews", interviewRoutes);
 router.use("/candidateComparisons", candidateComparisonRoutes);
+
 
 module.exports = router;
