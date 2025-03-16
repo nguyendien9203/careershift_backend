@@ -84,25 +84,32 @@ exports.createAndSendOffer = async (req, res) => {
 
 exports.updateOffer = async (req, res) => {
     try {
-  
-      const offer = await Offer.findById(offerId);
-      if (!offer) {
-        return res.status(404).json({ message: "Offer not found" });
-      }
-  
-      // Kiểm tra nếu có deal lương thì phải đặt approvalRequired = true
-      if (negotiatedSalary && negotiatedSalary !== offer.salary) {
-        if (negotiatedSalary < offer.baseSalary) {
-          return res.status(400).json({ message: "Negotiated salary must be greater than or equal to base salary" });
+        const { offerId } = req.params;
+        const { negotiatedSalary, updatedBy } = req.body;
+
+        const offer = await Offer.findById(offerId);
+        if (!offer) {
+            return res.status(404).json({ message: "Offer not found" });
         }
-        offer.negotiatedSalary = negotiatedSalary;
-        offer.approvalRequired = true; // Cần duyệt từ manager
-        offer.status = "PENDING"; // Chuyển trạng thái chờ duyệt
-      }
-  
-      offer.updatedBy = updatedBy;
-      await offer.save();
-      res.status(200).json({ message: "Offer updated, pending manager approval", offer });
+
+        // Kiểm tra nếu có deal lương thì phải đặt approvalRequired = true
+        if (negotiatedSalary && negotiatedSalary !== offer.salary) {
+            if (negotiatedSalary < offer.baseSalary) {
+                return res.status(400).json({ message: "Negotiated salary must be greater than or equal to base salary" });
+            }
+            if (negotiatedSalary > offer.salary * 1.15) {
+                return res.status(400).json({ 
+                    message: "Negotiated salary must not exceed 115% of the original salary" 
+                });
+            }
+            offer.negotiatedSalary = negotiatedSalary;
+            offer.approvalRequired = true; // Cần duyệt từ manager
+            offer.status = "PENDING"; // Chuyển trạng thái chờ duyệt
+        }
+
+        offer.updatedBy = updatedBy;
+        await offer.save();
+        res.status(200).json({ message: "Offer updated, pending manager approval", offer });
     } catch (error) {
         res.status(500).json({ message: "Server error", error });
     }
