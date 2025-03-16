@@ -21,6 +21,8 @@ const recruitmentSchema = new mongoose.Schema(
         type: Date,
         default: Date.now,
       },
+      required: [true, "CV file is required"],
+      type: Object,
     },
     status: {
       type: String,
