@@ -4,10 +4,9 @@ const { getInterviews,
     getInterviewById,
     createInterview,
     updateInterviewStage, 
-    deleteInterview,
-    updateInterview, createInterviewStage} = require("../controllers/interviewController");
+    updateInterview,updateFinalStatus} = require("../controllers/interviewController");
 
-const {sendInterviewInvitation,cancelInterview} = require("../controllers/sendEmailController")
+const {sendInterviewInvitation,cancelInterview,createInterviewStage} = require("../controllers/sendEmailController")
 const {getInterviewsByRecruitment,
     getUpcomingInterviews,
     getInterviewerWorkload,
@@ -29,8 +28,6 @@ router.post("/createInterviews", createInterview);
 // Route cập nhật kết quả từng vòng phỏng vấn
 router.put("/interviews/update-stage", updateInterviewStage);
 
-// Xóa lịch phỏng vấn
-router.delete("/interviews/deleteInterview/:id", deleteInterview);
 
 // Cập nhật lịch phỏng vấn
 router.put("/UpdateInterviews/:id", updateInterview);
@@ -69,6 +66,8 @@ router.put("/cancel/:interviewId", cancelInterview);
 router.post("/createInterviewStage", createInterviewStage);
 //Update thời gian phỏng vấn và check trùng của
 router.post("/updateInterviewDateTime", updateInterviewDateTime);
+
+router.post("/updateFinalStatus", updateFinalStatus);
 
 
 module.exports = router;

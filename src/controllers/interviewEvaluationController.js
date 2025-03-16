@@ -105,58 +105,69 @@ const updatePassFail = async (req, res) => {
   try {
     const { interviewId, round, status } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(interviewId)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid interview ID" });
-    }
-    if (!round || typeof round !== "number" || round < 1) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid round number" });
-    }
-    if (!["PASSED", "FAILED"].includes(status)) {
+    // Kiểm tra các trường bắt buộc
+    if (!interviewId || !round || !status) {
       return res.status(400).json({
         success: false,
-        message: "Status must be either 'PASSED' or 'FAILED'",
+        message: "interviewId, round và status là bắt buộc",
       });
     }
 
-    // Find the interview
-    const interview = await Interview.findById(interviewId);
-    if (!interview) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Interview not found" });
+    // Kiểm tra ID hợp lệ
+    if (!mongoose.Types.ObjectId.isValid(interviewId)) {
+      return res.status(400).json({
+        success: false,
+        message: "ID phỏng vấn không hợp lệ",
+      });
     }
 
-    // Find the stage by round
-    const stage = interview.stages.find((s) => s.round === round);
-    if (!stage) {
-      return res
-        .status(404)
-        .json({ success: false, message: `Round ${round} not found` });
+    // Kiểm tra số vòng
+    if (typeof round !== "number" || round < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Số vòng không hợp lệ",
+      });
     }
 
-    // Update the stage status
-    stage.status = status;
+    // Kiểm tra trạng thái
+    if (!["PASSED", "FAILED"].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Trạng thái phải là 'PASSED' hoặc 'FAILED'",
+      });
+    }
 
-    // Update the updatedBy field
-    interview.updatedBy = req.user?._id;
+    // Cập nhật chỉ trạng thái của vòng bằng updateOne
+    const updateResult = await Interview.updateOne(
+      { _id: interviewId, "stages.round": round },
+      {
+        $set: {
+          "stages.$.status": status, // Chỉ cập nhật status của vòng
+          updatedBy: req.user?._id,  // Cập nhật người sửa
+        },
+      }
+    );
 
-    // Save the changes
-    const updatedInterview = await interview.save();
+    if (updateResult.matchedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy phỏng vấn hoặc vòng để cập nhật",
+      });
+    }
+
+    // Lấy tài liệu đã cập nhật để trả về
+    const updatedInterview = await Interview.findById(interviewId);
 
     return res.status(200).json({
       success: true,
-      message: `Round ${round} updated to ${status} successfully`,
+      message: `Cập nhật vòng ${round} thành ${status} thành công`,
       data: updatedInterview,
     });
   } catch (error) {
-    console.error("Error updating pass/fail status:", error);
+    console.error("Lỗi khi cập nhật trạng thái pass/fail:", error);
     return res.status(500).json({
       success: false,
-      message: "Server error while updating pass/fail status",
+      message: "Lỗi máy chủ khi cập nhật trạng thái pass/fail",
       error: error.message,
     });
   }
