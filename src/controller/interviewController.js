@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
-const Interview = require("../models/Interview");
-const Candidate = require("../models/Candidate");
-const Recruitment = require("../models/Recruitment");
-const Job = require("../models/Job");
+const Interview = require("../models/interview.model");
+const Candidate = require("../models/candidate.model");
+const Recruitment = require("../models/recruitment.model");
+const Job = require("../models/job.model");
 
 exports.fetchCandidatesPassedInterview = async () => {
     try {

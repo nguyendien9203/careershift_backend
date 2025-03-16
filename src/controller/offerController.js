@@ -1,11 +1,12 @@
 const mongoose = require("mongoose");
-const Offer = require("../models/Offer");
-const Recruitment = require("../models/Recruitment");
+const Offer = require("../models/offer.model");
+const Recruitment = require("../models/recruitment.model");
+const Candidate = require("../models/candidate.model");
+const Job = require("../models/job.model");
 const { fetchCandidatesPassedInterview } = require("./interviewController");
 const { sendSalaryProposalEmail, sendOnboardingEmail } = require("../config/mailer");
-const Candidate = require("../models/Candidate");
+
 const { getCompletedComparisons } = require("./candidateComparisonController");
-const Job = require("../models/Job");
 
 
 exports.createAndSendOffer = async (req, res) => {

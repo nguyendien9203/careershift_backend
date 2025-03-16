@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const CandidateComparison = require("../models/CandidateComparison");
+const CandidateComparison = require("../models/candidateComparison.model");
 
 exports.getCompletedComparisons = async () => {
     try {

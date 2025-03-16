@@ -7,21 +7,8 @@ const candidateComparisonSchema = new mongoose.Schema(
       ref: "Job",
       required: [true, "Job ID is required"],
     },
-    candidates: [
-      {
-        candidateId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Candidate",
-          required: [true, "Candidate ID is required"],
-        },
-        averageScore: {
-          type: Number,
-          min: [0, "Average score must be at least 0"],
-          max: [10, "Average score cannot exceed 10"],
-        },
-      },
-    ],
-    selectedCandidateId: {
+    
+    selectedCandidateId: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: "Candidate",
       validate: {
@@ -30,7 +17,7 @@ const candidateComparisonSchema = new mongoose.Schema(
         },
         message: "Selected candidate must be from the listed candidates",
       },
-    },
+    }],
     status: {
       type: String,
       enum: {
