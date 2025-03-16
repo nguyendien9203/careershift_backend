@@ -9,21 +9,28 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const sendEmail = async (candidate) => {
+
+const sendEmail = async ({ name, email, jobTitle }) => {
   try {
+      if (!email || !name || !jobTitle) {
+          console.error(` Thiếu thông tin khi gửi email: ${JSON.stringify({ name, email, jobTitle })}`);
+          return;
+      }
+
       const mailOptions = {
           from: process.env.EMAIL_USER,
-          to: candidate.email,
+          to: email,
           subject: "Thông báo trúng tuyển",
-          text: `Xin chào ${candidate.name},\n\nChúc mừng bạn đã trúng tuyển vào vị trí ${candidate.job}!\nVui lòng liên hệ lại với chúng tôi để hoàn tất thủ tục.\n\nTrân trọng,\nCông ty ABC`
+          text: `Xin chào ${name},\n\nChúc mừng bạn đã trúng tuyển vào vị trí **${jobTitle}**!\nVui lòng liên hệ lại với chúng tôi để hoàn tất thủ tục.\n\nTrân trọng,\nCông ty ABC`
       };
 
       await transporter.sendMail(mailOptions);
-      console.log(`✅ Email đã gửi đến: ${candidate.email}`);
+      console.log(` Email đã gửi đến: ${email} - Công việc: ${jobTitle}`);
   } catch (error) {
-      console.error(`❌ Lỗi khi gửi email đến ${candidate.email}:`, error);
+      console.error(` Lỗi khi gửi email đến ${email}:`, error);
   }
 };
+
 
 const sendSalaryProposalEmail = async (candidate, offer) => {
   try {
@@ -48,9 +55,9 @@ const sendSalaryProposalEmail = async (candidate, offer) => {
     };
 
     await transporter.sendMail(mailOptions);
-    console.log(`✅ Đề xuất lương đã gửi đến: ${candidate.email}`);
+    console.log(` Đề xuất lương đã gửi đến: ${candidate.email}`);
   } catch (error) {
-    console.error(`❌ Lỗi khi gửi đề xuất lương đến ${candidate.email}:`, error);
+    console.error(` Lỗi khi gửi đề xuất lương đến ${candidate.email}:`, error);
     throw error;
   }
 };
