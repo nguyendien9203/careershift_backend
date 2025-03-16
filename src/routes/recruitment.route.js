@@ -1,16 +1,54 @@
 const express = require("express");
 const router = express.Router();
-const { recruitmentController } = require("../controllers");
-// const { authenticateToken } = require("../middlewares/auth");
+const { recruitmentController } = require("../controllers/index");
+const {
+  authenticateToken,
+  authorizeRole,
+} = require("../middlewares/auth.middleware");
+const { hasPermission } = require("../middlewares/permission.middleware");
 
-router.get("/stages/:jobId", recruitmentController.getCandidatesByStage);
-router.post("/:jobId", recruitmentController.applyForJob);
-router.delete("/:recruitmentId", recruitmentController.deleteRecruitment);
-// candidateRouter.post("/", createCandidate);
-// candidateRouter.get("/", getAllCandidates);
-// candidateRouter.get("/:id", getCandidateById);
-// candidateRouter.put("/:id", updateCandidate);
-// candidateRouter.delete("/:id", deleteCandidate);
-// candidateRouter.get("/user/:id", getCandidateByUserCreatedId);
+router.get(
+    "/stages/:jobId",
+    authenticateToken,
+    authorizeRole(["HR", "Manager"]),
+    hasPermission(["VIEW_RECRUITMENT_PROGRESS"]),
+    recruitmentController.getCandidatesByStage
+  );
+  router.post(
+    "/:jobId",
+    authenticateToken,
+    authorizeRole(["HR"]),
+    hasPermission(["ADD_CANDIDATE_RECRUITING", "ADD_RECRUITMENT_NOTES", "UPLOAD_CANDIDATE_CV"]),
+    recruitmentController.applyForJob
+  );
+  router.delete(
+    "/:recruitmentId",
+    authenticateToken,
+    authorizeRole(["HR", "Manager"]),
+    hasPermission(["DELETE_CANDIDATE_RECRUITING"]),
+    recruitmentController.deleteRecruitment
+  );
+router.put("/:recruitmentId", 
+    authenticateToken,authorizeRole(["HR", "Manager"]),
+    hasPermission(["UPDATE_CANDIDATE_RECRUITING", "UPDATE_RECRUITMENT_STATUS", "MARK_POTENTIAL_CANDIDATE"]), 
+    recruitmentController.updateRecruitment
+  );
+
+router.get(
+  "/:jobId/:recruitmentId",
+  authenticateToken,
+  authorizeRole(["HR", "Admin"]),
+  hasPermission(["VIEW_RECRUITMENT_DETAILS"]),
+  recruitmentController.getRecruitmentById
+);
+
+router.get(
+  "/:jobId",
+  authenticateToken,
+  authorizeRole(["HR", "Manager"]),
+  hasPermission(["VIEW_RECRUITMENT_PROGRESS"]),
+  recruitmentController.getRecruitmentByJobId
+);
+
 
 module.exports = router;

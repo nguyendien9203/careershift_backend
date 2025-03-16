@@ -1,5 +1,5 @@
 const nodemailer = require("nodemailer");
-const redis = require("./redis");
+// const redis = require("./redis");
 require("dotenv").config();
 
 const transporter = nodemailer.createTransport({

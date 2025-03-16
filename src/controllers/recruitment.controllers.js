@@ -1,12 +1,13 @@
 const Candidate = require("../models/candidate.model");
 const Recruitment = require("../models/recruitment.model");
+const Job = require("../models/job.model");
 const { RecruitmentStage, RecruitmentStatus } = require("../constants/index");
 
 exports.applyForJob = async (req, res) => {
   try {
     const jobId = req.params.jobId;
     console.log(jobId);
-    const { candidate, cvFile, notes, createdBy, updatedBy } = req.body;
+    const { message, candidate, cvFile, notes, continued, createdBy, updatedBy } = req.body;
 
     if (!candidate || !candidate.email) {
       return res.status(400).json({ message: "Candidate email is required" });
@@ -28,6 +29,7 @@ exports.applyForJob = async (req, res) => {
       await existingCandidate.save();
     }
 
+    if(continued) {
     const newRecruitment = new Recruitment({
       candidateId: existingCandidate._id,
       jobId,
@@ -36,12 +38,23 @@ exports.applyForJob = async (req, res) => {
       createdBy,
       updatedBy,
     });
-
     await newRecruitment.save();
+    
 
     return res
       .status(201)
       .json({ message: "Ứng tuyển thành công", recruitment: newRecruitment });
+  }
+
+  const recruitment =  await Recruitment.findOneAndUpdate({ jobId: req.params.jobId, candidateId: existingCandidate._id },
+    { $set: { cvFile, notes, updatedBy } },
+    { new: true, }).lean();
+  console.log(recruitment);
+  return res
+    .status(200)
+    .json({ message: message,
+      recruitment,
+     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -99,135 +112,87 @@ exports.deleteRecruitment = async (req, res) => {
   }
 };
 
-// api update cái ứng tuyển đó
-// api chấp nhận ứng viên
-// api từ chối ứng viên
+exports.updateRecruitment = async (req, res) => {
+  try {
+    const recruitmentId = req.params.recruitmentId; 
+    const recruitment = await Recruitment.findById(recruitmentId);
+    const candidate = await Candidate.findById(recruitment.candidateId);
+    const { customer, cvFile, status, notes, updatedBy } = req.body;
 
-// Create candidate
-// exports.createCandidate = async (req, res) => {
-//   // Decode the token and get the user id there
-//   // let token = req.headers.authorization;
-//   try {
-//     const { name, email, phone, source, cvFile, createdBy, updatedBy } =
-//       req.body;
-//     if (
-//       await Candidate.findOne({
-//         $or: [{ email }, { phone }],
-//       })
-//     ) {
-//       const candidate = await Candidate.findOne({ email });
-//       candidate.cvFile = cvFile;
-//       candidate.updatedBy = updatedBy;
-//       await candidate.save();
-//       return res.status(200).json({
-//         message: "Candidate already exists ",
-//         data: candidate,
-//       });
-//     }
-//     const newCandidate = new Candidate({
-//       name,
-//       email,
-//       phone,
-//       cvFile,
-//       source,
-//       createdBy,
-//       updatedBy,
-//     });
-//     await newCandidate.save();
-//     res
-//       .status(201)
-//       .json({ message: "Candidate created successfully", data: newCandidate });
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// };
+    if(!recruitment) {
+      return res.status(404).json({ message: "Ứng tuyển không tồn tại" });
+    }
+    if(!customer.name || !customer.phone || !customer.source || !customer.isPotential ||!cvFile || !status || !notes || !updatedBy) {
+      return res.status(400).json({ message: "Dien thieu thong tin" });
+    }
+    if(customer.email !== candidate.email) {
+      return res.status(400).json({ message: "Khong the cap nhat email moi khac email ban dau" });
+    }
 
-// Update candidate
-// exports.updateCandidate = async (req, res) => {
-//   // Decode the token and get the user id there
-//   // let token = req.headers.authorization;
-//   // updatedBy = req.user._id;
-//   const candidate = await Candidate.findById(req.params.id);
-//   // Check if candidate exists
-//   if (!candidate) {
-//     return res.status(404).json({ message: "Candidate not found" });
-//   }
-//   try {
-//     await candidate.updateOne(req.body);
-//     data = await Candidate.findById(req.params.id);
-//     res
-//       .status(200)
-//       .json({ message: "Candidate updated successfully", data: data });
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// };
+    const editedCandidate = await Candidate.findByIdAndUpdate( recruitment.candidateId, {
+      $set: {
+        name: customer.name,
+        phone: customer.phone,
+        source: customer.source,
+        isPotential: customer.isPotential,
+        updatedBy: updatedBy
+      },
+    }, { new: true });
 
-// // Delete candidate
-// exports.deleteCandidate = async (req, res) => {
-//   try {
-//     const candidate = await Candidate.findById(req.params.id);
-//     if (!candidate) {
-//       return res.status(404).json({ message: "Candidate not found" });
-//     }
-//     await candidate.deleteOne();
-//     res
-//       .status(200)
-//       .json({ message: "Candidate deleted successfully", data: candidate });
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// };
+    const updatedRecruitment = await Recruitment.findByIdAndUpdate(
+      recruitmentId,
+      {
+        $set: {
+          cvFile,
+          status,
+          notes,
+          updatedBy,
+        },
+      },
+      { new: true }
+    ).populate("candidateId", "-_id name email phone status isPotential").populate("jobId", "-_id title source_url").lean();
 
-// // Get all candidates
-// exports.getAllCandidates = async (req, res) => {
-//   try {
-//     const candidates = await Candidate.find();
-//     if (candidates.length === 0) {
-//       return res.status(404).json({ message: "No candidates found" });
-//     }
-//     res
-//       .status(200)
-//       .json({ message: "Candidates fetched successfully", data: candidates });
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// };
+    
+    res.status(200).json({ message: "Ứng tuyển được cập nhật", recruitment: updatedRecruitment });
+  } catch (error) {
+    res.status(500).json({ message: error.message }); 
+  }
+};
 
-// // Get candidate by id
-// exports.getCandidateById = async (req, res) => {
-//   try {
-//     const candidate = await Candidate.findById(req.params.id);
-//     if (!candidate) {
-//       return res.status(404).json({ message: "Candidate not found" });
-//     }
-//     res
-//       .status(200)
-//       .json({ message: "Candidate fetched successfully", data: candidate });
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// };
+exports.getRecruitmentByJobId = async (req, res) => {
+  try {
+    const job = await Job.findById(req.params.jobId);
+    if (!job) {
+      return res.status(404).json({ message: "Job not found" });
+    }
 
-// exports.getCandidateByUserCreatedId = async (req, res) => {
-//   try {
-//     const candidates = await Candidate.find({ createdBy: req.params.id })
-//       .populate("createdBy", "name")
-//       .populate("updatedBy", "name")
-//       .lean();
-//     const formattedCandidates = candidates.map((candidate) => ({
-//       ...candidate,
-//       createdBy: candidate.createdBy.name,
-//       updatedBy: candidate.updatedBy.name,
-//     }));
-//     if (candidates.length === 0) {
-//       return res.status(404).json({ message: "No candidates found" });
-//     }
-//     res.status(200).json({
-//       message: "Candidates fetched successfully",
-//       data: formattedCandidates,
-//     });
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// };
+    const recruitments = await Recruitment.find({ jobId: req.params.jobId })
+      .populate("candidateId", "-_id name email phone status isPotential")
+      .populate("jobId", "-_id title source_url")
+      .lean();
+
+    if (!recruitments.length) {
+      return res.status(404).json({ message: "No recruitment found for this job" });
+    }
+
+    res.status(200).json({ message: "Recruitment fetched successfully", recruitments });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+exports.getRecruitmentById = async (req, res) => {
+  try {
+    const recruitment = await Recruitment.findById(req.params.recruitmentId)
+      .populate("candidateId", "-_id name email phone status isPotential")
+      .populate("jobId", "-_id title source_url")
+      .lean();
+    if (!recruitment) {
+      return res.status(404).json({ message: "Recruitment not found" });
+    }
+    res.status(200).json({ message: "Recruitment fetched successfully", recruitment });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
