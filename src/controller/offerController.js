@@ -83,7 +83,6 @@ exports.createAndSendOffer = async (req, res) => {
 
 exports.updateOffer = async (req, res) => {
     try {
-      const { offerId } = req.params;
       const { negotiatedSalary, updatedBy } = req.body;
   
       const offer = await Offer.findById(offerId);
@@ -105,7 +104,7 @@ exports.updateOffer = async (req, res) => {
       await offer.save();
       res.status(200).json({ message: "Offer updated, pending manager approval", offer });
     } catch (error) {
-      res.status(500).json({ message: "Server error", error });
+        res.status(500).json({ message: "Server error", error });
     }
   };
   
