@@ -31,3 +31,14 @@ exports.getCompletedComparisons = async () => {
     }
 };
 
+exports.getCompletedCandidateComparisons = async (req, res) => {
+    try {
+        const completedComparisons = await exports.getCompletedComparisons();
+        return res.status(200).json({
+            message: "Danh sách các ứng viên và công việc có trạng thái COMPLETED",
+            data: completedComparisons,
+        });
+    } catch (error) {
+        return res.status(500).json({ message: "Lỗi server", error: error.message });
+    }
+};
