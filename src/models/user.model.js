@@ -1,4 +1,6 @@
 const mongoose = require("mongoose");
+const Role = require("./role.model");
+const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
@@ -19,25 +21,8 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
-      validate:{
-        validator: function (v) {
-          return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(
-            v
-          );
-        },
-        message: (props) => `${props.value} is not a valid password`,
-      }
-  },
-    oauthProvider: {
-      type: String,
-      enum: {
-        values: ["google"],
-        message: "OAuth provider must be 'google' or null.",
-      },
-      default: null,
+      minLength: [8, "Password must have at least 8 characters"],
     },
-    oauthId: String,
     name: {
       type: String,
       required: [true, "Name is required"],
@@ -55,7 +40,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: {
         values: ["ACTIVE", "LOCKED", "INACTIVE", "DELETED"],
-        message: "Status must be 'Active', 'Locked', 'Inactive', or 'Deleted'.",
+        message: "Status must be 'ACTIVE', 'LOCKED', 'INACTIVE', or 'DELETED'.",
       },
       default: "ACTIVE",
     },
@@ -63,14 +48,14 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    locked_until: Date,
+    lockedUntil: Date,
     verified: {
       type: Boolean,
       default: false,
     },
     roles: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Role",
+      ref: Role,
       required: [true, "User role is required"],
     },
     createdBy: {
@@ -84,5 +69,17 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// hashed password
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 module.exports = mongoose.model("User", userSchema);

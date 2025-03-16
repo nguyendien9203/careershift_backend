@@ -7,10 +7,22 @@ const recruitmentSchema = new mongoose.Schema(
       ref: "Candidate",
       required: [true, "Candidate ID is required"],
     },
-    jobId: { 
+    jobId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Job",
       required: [true, "Job ID is required"],
+    },
+    cvFile: {
+      fileName: {
+        type: String,
+        required: [true, "CV file name is required"],
+      },
+      uploadedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      required: [true, "CV file is required"],
+      type: Object,
     },
     status: {
       type: String,

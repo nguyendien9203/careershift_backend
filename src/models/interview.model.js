@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const Recruitment = require("./recruitment.model");
 
 const evaluationSchema = new mongoose.Schema({
   interviewerId: {
@@ -32,7 +33,7 @@ const interviewSchema = new mongoose.Schema(
   {
     recruitmentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Recruitment",
+      ref: Recruitment,
       required: [true, "Recruitment ID is required"],
     },
     stages: [
@@ -110,4 +111,4 @@ const interviewSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Interview", interviewSchema);                
+module.exports = mongoose.model("Interview", interviewSchema);
