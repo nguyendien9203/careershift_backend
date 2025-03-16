@@ -5,7 +5,7 @@ const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const routes = require("./src/routes");
 const connectDB = require("./src/config/db");
-//const redis = require("./src/config/redis");
+const redis = require("./src/config/redis");
 require("dotenv").config();
 
 const PORT = process.env.PORT || 9999;
@@ -22,13 +22,13 @@ app.use(
   })
 );
 
-// redis.on("connect", () => {
-//   console.log("Connected to Redis");
-// });
+redis.on("connect", () => {
+  console.log("Connected to Redis");
+});
 
-// redis.on("error", (err) => {
-//   console.error("Redis error:", err);
-// });
+redis.on("error", (err) => {
+  console.error("Redis error:", err);
+});
 
 app.use("/api", routes);
 
@@ -43,3 +43,4 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   connectDB();
 });
+
