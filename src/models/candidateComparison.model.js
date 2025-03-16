@@ -11,12 +11,13 @@ const candidateComparisonSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Candidate",
-        validate: {
-          validator: function (v) {
-            return !v || this.candidates.some((c) => c.candidateId.equals(v));
-          },
-          message: "Selected candidate must be from the listed candidates",
-        },
+        // validate: {
+        //   validator: function (v) {
+        //     return !v || this.candidates.some((c) => c.candidateId.equals(v));
+        //   },
+        //   message: "Selected candidate must be from the listed candidates",
+        // },
+        required: true,
       }
     ],
     status: {

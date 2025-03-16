@@ -98,7 +98,7 @@ exports.evaluationSummary = async (req, res, next) => {
   try {
     const { jobId } = req.params;
 
-    // 🔹 Bước 1: Lấy danh sách recruitments và populate candidateId
+    // Bước 1: Lấy danh sách recruitments và populate candidateId
     const recruitments = await Recruitment.find({ jobId })
       .populate({ path: "jobId", select: "title" })
       .populate({ path: "candidateId", select: "name" })
@@ -114,7 +114,7 @@ exports.evaluationSummary = async (req, res, next) => {
     const recruitmentIds = recruitments.map((rec) => rec._id);
     console.log("Recruitment IDs:", recruitmentIds);
 
-    // 🔹 Bước 2: Lấy danh sách Interviews với populate recruitmentId và candidateId
+    // Bước 2: Lấy danh sách Interviews với populate recruitmentId và candidateId
     const interviews = await Interview.find({ recruitmentId: { $in: recruitmentIds } })
       .populate({
         path: "recruitmentId",
@@ -126,7 +126,7 @@ exports.evaluationSummary = async (req, res, next) => {
 
     let candidateData = {};
 
-    // 🔹 Bước 3: Tính điểm trung bình từ evaluations
+    // Bước 3: Tính điểm trung bình từ evaluations
     interviews.forEach((interview) => {
       const candidateId = interview.recruitmentId?.candidateId?._id?.toString();
       if (!candidateId) {
@@ -160,7 +160,7 @@ exports.evaluationSummary = async (req, res, next) => {
       candidateData[candidateId].count += 1;
     });
 
-    // 🔹 Chuẩn bị kết quả trả về
+    // Chuẩn bị kết quả trả về
     const candidates = Object.keys(candidateData).map((candidateId) => ({
       candidateId,
       name: candidateData[candidateId].name,
