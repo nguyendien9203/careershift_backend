@@ -12,27 +12,27 @@ const transporter = nodemailer.createTransport({
 
 const sendEmail = async ({ name, email, jobTitle }) => {
   try {
-      if (!email || !name || !jobTitle) {
-          console.error(` Thiếu thông tin khi gửi email: ${JSON.stringify({ name, email, jobTitle })}`);
-          return;
-      }
+    if (!email || !name || !jobTitle) {
+      console.error(` Thiếu thông tin khi gửi email: ${JSON.stringify({ name, email, jobTitle })}`);
+      return;
+    }
 
-      const mailOptions = {
-          from: process.env.EMAIL_USER,
-          to: email,
-          subject: "Thông báo trúng tuyển",
-          text: `Xin chào ${name},\n\nChúc mừng bạn đã trúng tuyển vào vị trí **${jobTitle}**!\nVui lòng liên hệ lại với chúng tôi để hoàn tất thủ tục.\n\nTrân trọng,\nCông ty ABC`
-      };
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Thông báo trúng tuyển",
+      text: `Xin chào ${name},\n\nChúc mừng bạn đã trúng tuyển vào vị trí **${jobTitle}**!\nVui lòng liên hệ lại với chúng tôi để hoàn tất thủ tục.\n\nTrân trọng,\nCông ty ABC`
+    };
 
-      await transporter.sendMail(mailOptions);
-      console.log(` Email đã gửi đến: ${email} - Công việc: ${jobTitle}`);
+    await transporter.sendMail(mailOptions);
+    console.log(` Email đã gửi đến: ${email} - Công việc: ${jobTitle}`);
   } catch (error) {
-      console.error(` Lỗi khi gửi email đến ${email}:`, error);
+    console.error(` Lỗi khi gửi email đến ${email}:`, error);
   }
 };
 
 
-const sendSalaryProposalEmail = async (candidate, offer) => {
+const sendSalaryProposalEmail = async (candidate, offer, jobTitle) => {
   try {
     const { baseSalary, negotiatedSalary, salary, bonus, note } = offer;
     const formattedBaseSalary = Number(baseSalary).toLocaleString("vi-VN");
@@ -50,8 +50,8 @@ const sendSalaryProposalEmail = async (candidate, offer) => {
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: candidate.email,
-      subject: `Đề xuất mức lương cho vị trí ${candidate.job}`,
-      text: `Xin chào ${candidate.name},\n\nChúng tôi rất vui mừng thông báo rằng bạn đã được chọn cho vị trí ${candidate.job}. Sau khi xem xét, chúng tôi đề xuất:\n${salaryText}\n- Thưởng: ${formattedBonus} VND${noteText}\n\nVui lòng phản hồi email này để xác nhận (ACCEPTED) hoặc từ chối (REJECTED) kèm yêu cầu thương lượng nếu có.\n\nTrân trọng,\nCông ty ABC`,
+      subject: `Đề xuất mức lương cho vị trí ${jobTitle}`,
+      text: `Xin chào ${candidate.name},\n\nChúng tôi rất vui mừng thông báo rằng bạn đã được chọn cho vị trí ${jobTitle}. Sau khi xem xét, chúng tôi đề xuất:\n${salaryText}\n- Thưởng: ${formattedBonus} VND${noteText}\n\nVui lòng phản hồi email này để xác nhận (ACCEPTED) hoặc từ chối (REJECTED) kèm yêu cầu thương lượng nếu có.\n\nTrân trọng,\nCông ty ABC`,
     };
 
     await transporter.sendMail(mailOptions);
@@ -80,8 +80,7 @@ Chúc mừng bạn đã chính thức trở thành nhân viên của Công ty AB
 - Loại hợp đồng: ${contractType}
 - Ngày bắt đầu: ${startDate}
 - Mức lương: ${formattedSalary} VND/tháng
-- Bộ phận: ${department}
-- Quản lý trực tiếp: ${manager}\n
+
 Để hoàn tất quá trình onboard, vui lòng chuẩn bị các giấy tờ cần thiết và gửi về phòng nhân sự trước ngày làm việc đầu tiên.\n
 Nếu bạn có bất kỳ thắc mắc nào, hãy liên hệ với chúng tôi qua email hoặc hotline HR.\n
 Chúng tôi rất mong được chào đón bạn tại Công ty ABC!\n\n
