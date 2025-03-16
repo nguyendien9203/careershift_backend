@@ -122,14 +122,14 @@ exports.uploadFileWhenUpdate = async (req, res) => {
   try {
     const recruitment = await Recruitment.findById(req.params.rec_id).lean();
     let { name, email, phone, source, isPotential,  status, notes  } = req.body;
-    const customer = { name, email, phone, source, isPotential };
+    const candidate = { name, email, phone, source, isPotential };
     
     let cvFile = recruitment.cvFile;
 
     if (req.files.length === 0) {
       return res.status(200).json({
         message: "No file uploaded",
-        customer,
+        candidate,
         status,
         notes,
         cvFile  
@@ -151,7 +151,7 @@ exports.uploadFileWhenUpdate = async (req, res) => {
     await s3Client.send(new PutObjectCommand(uploadedParams));
     res.status(200).json({
       message: "File uploaded successfully",
-      customer,
+      candidate,
       status,
       notes,
       cvFile

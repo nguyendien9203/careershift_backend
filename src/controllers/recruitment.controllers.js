@@ -116,25 +116,25 @@ exports.updateRecruitment = async (req, res) => {
   try {
     const recruitmentId = req.params.recruitmentId; 
     const recruitment = await Recruitment.findById(recruitmentId);
-    const candidate = await Candidate.findById(recruitment.candidateId);
-    const { customer, cvFile, status, notes, updatedBy } = req.body;
+    const candidateCurrent = await Candidate.findById(recruitment.candidateId);
+    const { candidate, cvFile, status, notes, updatedBy } = req.body;
 
     if(!recruitment) {
       return res.status(404).json({ message: "Ứng tuyển không tồn tại" });
     }
-    if(!customer.name || !customer.phone || !customer.source || !customer.isPotential ||!cvFile || !status || !notes || !updatedBy) {
+    if(!candidate.name || !candidate.phone || !candidate.source || !candidate.isPotential ||!cvFile || !status || !notes || !updatedBy) {
       return res.status(400).json({ message: "Dien thieu thong tin" });
     }
-    if(customer.email !== candidate.email) {
+    if(candidate.email !== candidateCurrent.email) {
       return res.status(400).json({ message: "Khong the cap nhat email moi khac email ban dau" });
     }
 
     const editedCandidate = await Candidate.findByIdAndUpdate( recruitment.candidateId, {
       $set: {
-        name: customer.name,
-        phone: customer.phone,
-        source: customer.source,
-        isPotential: customer.isPotential,
+        name: candidate.name,
+        phone: candidate.phone,
+        source: candidate.source,
+        isPotential: candidate.isPotential,
         updatedBy: updatedBy
       },
     }, { new: true });
