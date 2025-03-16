@@ -16,6 +16,6 @@ interviewRouter.get("/", getInterviews);
 interviewRouter.get("/:id", getInterviewById);
 interviewRouter.put("/:id/update-interview", updateInterview);
 interviewRouter.delete("/:id", deleteInterview);
-interviewRouter.get("/:id/evaluation-summary", evaluationSummary);
+interviewRouter.get("/:jobId/evaluation-summary", evaluationSummary);
 
 module.exports = interviewRouter;

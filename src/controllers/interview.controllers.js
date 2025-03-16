@@ -1,4 +1,5 @@
 const Interview = require("../models/interview.model");
+const Recruitment = require("../models/recruitment.model");
 
 // Create an Interview
 exports.createInterview = async (req, res, next) => {
@@ -92,66 +93,88 @@ exports.deleteInterview = async (req, res, next) => {
   }
 };
 
-exports.evaluationSummary = async (req, res) => {
+// Evaluation Summary
+exports.evaluationSummary = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    
-    // Tìm interview theo ID
-    const interview = await Interview.findById(id);
-    if (!interview) {
-      return res.status(404).json({ message: "Interview not found" });
+    const { jobId } = req.params;
+
+    // 🔹 Bước 1: Lấy danh sách recruitments và populate candidateId
+    const recruitments = await Recruitment.find({ jobId })
+      .populate({ path: "jobId", select: "title" })
+      .populate({ path: "candidateId", select: "name" })
+      .lean();
+
+    console.log("Recruitments Data:", JSON.stringify(recruitments, null, 2));
+
+    if (!recruitments.length) {
+      return res.json({ jobId, title: null, candidates: [] });
     }
 
-    let overallTotalScore = 0;
-    let overallTotalCount = 0;
-    
-    // Duyệt qua từng vòng để tính điểm trung bình
-    const stageAverages = interview.stages.map((stage) => {
-      let stageTotalScore = 0;
-      let stageTotalCount = 0;
-    
-      stage.evaluations.forEach((evaluation) => {
-        if (evaluation.score) {
-          // Chuyển evaluation.score sang plain object
-          const scoreData = JSON.parse(JSON.stringify(evaluation.score));
-          const scores = Object.values(scoreData).map(Number);
-          
-          const validScores = scores.filter((val) => !isNaN(val)); // Lọc bỏ NaN
-          const sum = validScores.reduce((acc, val) => acc + val, 0);
-          
-          stageTotalScore += sum;
-          stageTotalCount += validScores.length;
-        }
+    const title = recruitments[0]?.jobId?.title || "Unknown Job";
+    const recruitmentIds = recruitments.map((rec) => rec._id);
+    console.log("Recruitment IDs:", recruitmentIds);
+
+    // 🔹 Bước 2: Lấy danh sách Interviews với populate recruitmentId và candidateId
+    const interviews = await Interview.find({ recruitmentId: { $in: recruitmentIds } })
+      .populate({
+        path: "recruitmentId",
+        populate: { path: "candidateId", select: "name" }
+      })
+      .lean();
+
+    console.log("Interviews Data:", JSON.stringify(interviews, null, 2));
+
+    let candidateData = {};
+
+    // 🔹 Bước 3: Tính điểm trung bình từ evaluations
+    interviews.forEach((interview) => {
+      const candidateId = interview.recruitmentId?.candidateId?._id?.toString();
+      if (!candidateId) {
+        console.log("Candidate ID not found for interview:", interview._id);
+        return;
+      }
+
+      if (!candidateData[candidateId]) {
+        candidateData[candidateId] = {
+          name: interview.recruitmentId.candidateId.name || "Unknown",
+          totalScore: 0,
+          count: 0
+        };
+      }
+
+      let overallTotalScore = 0;
+      let overallTotalCount = 0;
+
+      interview.stages.forEach((stage) => {
+        stage.evaluations.forEach((evaluation) => {
+          if (evaluation?.score) {
+            const scores = Object.values(evaluation.score).map(Number).filter((val) => !isNaN(val));
+            overallTotalScore += scores.reduce((acc, val) => acc + val, 0);
+            overallTotalCount += scores.length;
+          }
+        });
       });
-      
-      // Cập nhật tổng chung
-      overallTotalScore += stageTotalScore;
-      overallTotalCount += stageTotalCount;
 
-      // Tính trung bình vòng
-      const stageAverageScore =
-        stageTotalCount > 0 ? (stageTotalScore / stageTotalCount).toFixed(2) : "0";
-
-      console.log(`Stage ${stage.round} - Total Score: ${stageTotalScore}, Count: ${stageTotalCount}, Average: ${stageAverageScore}`);
-      
-      return {
-        round: stage.round,
-        type: stage.type,
-        status: stage.status,
-        averageScore: stageAverageScore,
-      };
+      const overallAverage = overallTotalCount > 0 ? (overallTotalScore / overallTotalCount).toFixed(2) : "0";
+      candidateData[candidateId].totalScore += parseFloat(overallAverage);
+      candidateData[candidateId].count += 1;
     });
-    
-    // Tính trung bình tổng của tất cả các vòng
-    const overallAverage =
-      overallTotalCount > 0 ? (overallTotalScore / overallTotalCount).toFixed(2) : "0";
 
-    console.log("Overall Total Score:", overallTotalScore);
-    console.log("Overall Total Count:", overallTotalCount);
-    console.log("Overall Average:", overallAverage);
+    // 🔹 Chuẩn bị kết quả trả về
+    const candidates = Object.keys(candidateData).map((candidateId) => ({
+      candidateId,
+      name: candidateData[candidateId].name,
+      overallAverage: candidateData[candidateId].count > 0
+        ? (candidateData[candidateId].totalScore / candidateData[candidateId].count).toFixed(2)
+        : "0"
+    }));
 
-    res.status(200).json({ interviewId: id, stageAverages, overallAverage });
+    console.log("Final Candidates:", candidates);
+
+    return res.json({ jobId, title, candidates });
   } catch (error) {
-    res.status(500).json({ message: "Internal server error", error: error.message });
+    console.error("Error in evaluationSummary:", error);
+    next(error);
   }
 };
+
