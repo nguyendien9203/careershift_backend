@@ -2,10 +2,12 @@ const Candidate = require("../models/candidate.model");
 const Recruitment = require("../models/recruitment.model");
 const Job = require("../models/job.model");
 const { RecruitmentStage, RecruitmentStatus } = require("../constants/index");
+const { sendInterviewEmailToCandidate } = require("../config/email");
 
 exports.applyForJob = async (req, res) => {
   try {
     const jobId = req.params.jobId;
+
     console.log(jobId);
     const { message, candidate, cvFile, notes, continued, createdBy, updatedBy } = req.body;
 
@@ -112,6 +114,7 @@ exports.deleteRecruitment = async (req, res) => {
   }
 };
 
+
 exports.updateRecruitment = async (req, res) => {
   try {
     const recruitmentId = req.params.recruitmentId; 
@@ -176,10 +179,56 @@ exports.getRecruitmentByJobId = async (req, res) => {
     }
 
     res.status(200).json({ message: "Recruitment fetched successfully", recruitments });
+      } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.sendInterviewInvitation = async (req, res) => {
+  try {
+    const { deadline } = req.body;
+
+    if (!deadline) {
+      return res.status(400).json({
+        message: "Vui lòng nhập thời hạn phản hồi lời mời phỏng vấn.",
+      });
+    }
+
+    const recruitment = await Recruitment.findById(req.params.recruitmentId);
+    if (!recruitment) {
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy thông tin tuyển dụng" });
+    }
+
+    const job = await Job.findById(recruitment.jobId);
+    if (!job) {
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy vị trí công việc" });
+    }
+
+    const candidate = await Candidate.findById(recruitment.candidateId);
+    if (!candidate) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy thông tin ứng viên" });
+    }
+
+    const { success, message } = await sendInterviewEmailToCandidate(
+      candidate,
+      job.title,
+      deadline
+    );
+
+    if (!success) return res.status(500).json({ message: message });
+
+    return res.status(200).json({ message: message });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 
 exports.getRecruitmentById = async (req, res) => {
@@ -192,6 +241,35 @@ exports.getRecruitmentById = async (req, res) => {
       return res.status(404).json({ message: "Recruitment not found" });
     }
     res.status(200).json({ message: "Recruitment fetched successfully", recruitment });
+    } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.updateRecruitmentStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({
+        message: "Vui lòng nhập trạng thái ứng tuyển",
+      });
+    }
+
+    const recruitment = await Recruitment.findById(req.params.recruitmentId);
+    if (!recruitment) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy thông tin tuyển dụng",
+      });
+    }
+
+    recruitment.status = status;
+    await recruitment.save();
+
+    return res.status(200).json({
+      message: `Đã cập nhật trạng thái tuyển dụng thành ${status}`,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
