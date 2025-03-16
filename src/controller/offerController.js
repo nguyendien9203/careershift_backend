@@ -81,9 +81,9 @@ exports.createAndSendOffer = async (req, res) => {
     }
 };
 
+
 exports.updateOffer = async (req, res) => {
     try {
-      const { negotiatedSalary, updatedBy } = req.body;
   
       const offer = await Offer.findById(offerId);
       if (!offer) {
