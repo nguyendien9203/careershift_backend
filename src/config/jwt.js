@@ -3,13 +3,13 @@ const redis = require("./redis");
 
 exports.generateAccessToken = async (user) => {
   return jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-    expiresIn: "15m",
+    expiresIn: "1h", //30s
   });
 };
 
 exports.generateRefreshToken = async (user) => {
   const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-    expiresIn: "1d",
+    expiresIn: "1d", //1m
   });
 
   await redis.set(`refreshToken:${user._id}`, refreshToken, "EX", 24 * 60 * 60); //1d

@@ -162,9 +162,6 @@ const createInterview = async (req, res) => {
   }
 };
 
-
-
-
 const updateInterviewStage = async (req, res) => {
   try {
     const { interviewId, round, interviewerId, score, comments } = req.body;
@@ -194,7 +191,8 @@ const updateInterviewStage = async (req, res) => {
       if (typeof score !== "object" || Object.keys(score).length === 0) {
         return res.status(400).json({
           success: false,
-          message: "Điểm phải là một đối tượng không rỗng chứa tiêu chí và giá trị",
+          message:
+            "Điểm phải là một đối tượng không rỗng chứa tiêu chí và giá trị",
         });
       }
 
@@ -202,7 +200,9 @@ const updateInterviewStage = async (req, res) => {
       const scoresValid = scoreEntries.every(([key, value]) => {
         const isValid = Number.isFinite(value) && value >= 0 && value <= 10;
         if (!isValid) {
-          console.log(`Điểm không hợp lệ cho ${key}: ${value} (kiểu: ${typeof value})`);
+          console.log(
+            `Điểm không hợp lệ cho ${key}: ${value} (kiểu: ${typeof value})`
+          );
         }
         return isValid;
       });
@@ -469,10 +469,6 @@ const updateInterview = async (req, res) => {
 //   }
 // };
 
-
-
-
-
 const updateFinalStatus = async (req, res) => {
   try {
     const { interviewId, finalStatus } = req.body;
@@ -494,7 +490,8 @@ const updateFinalStatus = async (req, res) => {
     if (!["IN_PROGRESS", "COMPLETED", "CANCELLED"].includes(finalStatus)) {
       return res.status(400).json({
         success: false,
-        message: "finalStatus phải là 'IN_PROGRESS', 'COMPLETED' hoặc 'CANCELLED'",
+        message:
+          "finalStatus phải là 'IN_PROGRESS', 'COMPLETED' hoặc 'CANCELLED'",
       });
     }
 
@@ -531,13 +528,12 @@ const updateFinalStatus = async (req, res) => {
     });
   }
 };
+
 module.exports = {
   getInterviews,
   getInterviewById,
   createInterview,
   updateInterviewStage,
-  
   updateInterview,
-  
-  updateFinalStatus
+  updateFinalStatus,
 };

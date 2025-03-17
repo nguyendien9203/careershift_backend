@@ -1,19 +1,24 @@
-require('dotenv').config();
-const nodemailer = require('nodemailer');
+require("dotenv").config();
+const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: "gmail",
   auth: {
     user: process.env.EMAIL_USER, // Email gửi
     pass: process.env.EMAIL_PASS, // Mật khẩu ứng dụng
   },
 });
 
-
 const sendEmail = async ({ name, email, jobTitle }) => {
   try {
     if (!email || !name || !jobTitle) {
-      console.error(` Thiếu thông tin khi gửi email: ${JSON.stringify({ name, email, jobTitle })}`);
+      console.error(
+        ` Thiếu thông tin khi gửi email: ${JSON.stringify({
+          name,
+          email,
+          jobTitle,
+        })}`
+      );
       return;
     }
 
@@ -21,7 +26,7 @@ const sendEmail = async ({ name, email, jobTitle }) => {
       from: process.env.EMAIL_USER,
       to: email,
       subject: "Thông báo trúng tuyển",
-      text: `Xin chào ${name},\n\nChúc mừng bạn đã trúng tuyển vào vị trí **${jobTitle}**!\nVui lòng liên hệ lại với chúng tôi để hoàn tất thủ tục.\n\nTrân trọng,\nCông ty ABC`
+      text: `Xin chào ${name},\n\nChúc mừng bạn đã trúng tuyển vào vị trí **${jobTitle}**!\nVui lòng liên hệ lại với chúng tôi để hoàn tất thủ tục.\n\nTrân trọng,\nCông ty ABC`,
     };
 
     await transporter.sendMail(mailOptions);
@@ -31,19 +36,21 @@ const sendEmail = async ({ name, email, jobTitle }) => {
   }
 };
 
-
 const sendSalaryProposalEmail = async (candidate, offer, jobTitle) => {
   try {
     const { baseSalary, negotiatedSalary, salary, bonus, note } = offer;
     const formattedBaseSalary = Number(baseSalary).toLocaleString("vi-VN");
     const formattedSalary = Number(salary).toLocaleString("vi-VN");
-    const formattedBonus = bonus ? Number(bonus).toLocaleString("vi-VN") : "Không có";
+    const formattedBonus = bonus
+      ? Number(bonus).toLocaleString("vi-VN")
+      : "Không có";
     const noteText = note ? `\n\nGhi chú: ${note}` : "";
 
     // Chỉ thêm negotiatedSalary nếu nó tồn tại và khác baseSalary
     let salaryText = `- Mức lương cơ bản: ${formattedBaseSalary} VND/tháng\n- Mức lương cuối cùng: ${formattedSalary} VND/tháng`;
     if (negotiatedSalary && negotiatedSalary !== baseSalary) {
-      const formattedNegotiated = Number(negotiatedSalary).toLocaleString("vi-VN");
+      const formattedNegotiated =
+        Number(negotiatedSalary).toLocaleString("vi-VN");
       salaryText += `\n- Mức lương thương lượng: ${formattedNegotiated} VND/tháng`;
     }
 
@@ -91,10 +98,12 @@ Phòng Nhân Sự - Công ty ABC`,
     await transporter.sendMail(mailOptions);
     console.log(`✅ Email onboarding đã gửi đến: ${candidate.email}`);
   } catch (error) {
-    console.error(`❌ Lỗi khi gửi email onboarding đến ${candidate?.email || "undefined"}:`, error);
+    console.error(
+      `❌ Lỗi khi gửi email onboarding đến ${candidate?.email || "undefined"}:`,
+      error
+    );
     throw error;
   }
 };
-
 
 module.exports = { sendEmail, sendSalaryProposalEmail, sendOnboardingEmail };
