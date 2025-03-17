@@ -1,3 +1,4 @@
+const { sendEmail } = require("../config/mailer");
 const CandidateComparison = require("../models/candidate-comparison.model");
 
 exports.getCompletedComparisons = async () => {
@@ -50,7 +51,7 @@ exports.sendEmailToCandidates = async (req, res) => {
   try {
     // Lấy danh sách ứng viên đã trúng tuyển
 
-    const candidates = await getCompletedComparisons();
+    const candidates = await this.getCompletedComparisons();
 
     if (!candidates || candidates.length === 0) {
       return res
