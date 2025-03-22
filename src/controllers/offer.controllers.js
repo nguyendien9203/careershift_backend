@@ -204,6 +204,7 @@ exports.managerApproveOffer = async (req, res) => {
       .json({ message: "Lỗi server", error: error.message });
   }
 };
+
 exports.hrUpdateOfferStatus = async (req, res) => {
   try {
     const { offerId } = req.params;
