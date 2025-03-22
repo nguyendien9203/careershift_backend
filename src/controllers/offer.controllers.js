@@ -1,117 +1,80 @@
+const mongoose = require("mongoose");
+
 const Offer = require("../models/offer.model");
 const Recruitment = require("../models/recruitment.model");
 const Candidate = require("../models/candidate.model");
 const Job = require("../models/job.model");
-
+const candidateComparisonModel = require("../models/candidate-comparison.model");
 const {
   sendSalaryProposalEmail,
   sendOnboardingEmail,
 } = require("../config/mailer");
 
-const { getCompletedComparisons } = require("./candidate.controllers");
 
-exports.createAndSendOffer = async (req, res) => {
+//tạo offer
+exports.createOffer = async (req, res) => {
   try {
-    const { recruitmentId, baseSalary, salary, bonus, note } = req.body;
-    const createdBy = req.user?.id; // ID của người tạo
+    // 1. Lấy candidateId và thông tin offer từ request
+    const { candidateId } = req.params;
+    const { baseSalary, salary, bonus, note } = req.body;
 
-    console.log("==> Nhận request:", {
-      recruitmentId,
-      baseSalary,
-      salary,
-      bonus,
-      note,
-      createdBy,
+    const objectIdCandidateId = new mongoose.Types.ObjectId(candidateId);
+
+    // 2. Kiểm tra ứng viên có trong CandidateComparison không
+    const candidateComparison = await candidateComparisonModel.findOne({
+      selectedCandidateId: objectIdCandidateId,
     });
-
-    if (!recruitmentId || !baseSalary || !salary) {
-      console.log("Thiếu thông tin quan trọng!");
-      return res
-        .status(400)
-        .json({ message: "Vui lòng cung cấp đầy đủ thông tin." });
+    if (!candidateComparison) {
+      return res.status(404).json({ message: "Không tìm thấy ứng viên trúng tuyển." });
     }
 
-    // Lấy thông tin tuyển dụng
-    const recruitment = await Recruitment.findById(recruitmentId).populate(
-      "candidateId"
-    );
+    // 3. Tìm Recruitment theo candidateId và jobId
+    const recruitment = await Recruitment.findOne({
+      candidateId: objectIdCandidateId,
+      jobId: candidateComparison.jobId,
+    });
     if (!recruitment) {
-      console.log("Không tìm thấy thông tin tuyển dụng với ID:", recruitmentId);
-      return res
-        .status(404)
-        .json({ message: "Không tìm thấy thông tin tuyển dụng." });
-    }
-    console.log("Thông tin tuyển dụng:", recruitment);
-
-    // Lấy danh sách các CandidateComparison đã hoàn thành
-    const completedComparisons = await getCompletedComparisons();
-    console.log("Danh sách completedComparisons:", completedComparisons);
-
-    const candidateId = recruitment.candidateId._id.toString(); // Lấy ObjectId dưới dạng string
-    console.log("Candidate ID từ recruitment:", candidateId);
-
-    // Tìm danh sách đã hoàn thành theo jobId
-    const completedComparison = completedComparisons.find(
-      (c) => c.job.id === recruitment.jobId.toString()
-    );
-    if (!completedComparison) {
-      console.log(
-        "Không tìm thấy danh sách đã hoàn thành cho công việc với jobId:",
-        recruitment.jobId
-      );
-      return res.status(400).json({
-        message:
-          "Công việc này chưa có danh sách ứng viên được chọn hoàn thành.",
-      });
-    }
-    console.log("Danh sách hoàn thành tìm thấy:", completedComparison);
-
-    const selectedCandidates = completedComparison.selectedCandidates.map((c) =>
-      c.id.toString()
-    ); // Chuyển ObjectId sang string
-    console.log("Danh sách selectedCandidates:", selectedCandidates);
-
-    // Kiểm tra `candidateId` có trong danh sách `selectedCandidates` không
-    if (!selectedCandidates.includes(candidateId)) {
-      console.log("Ứng viên chưa nằm trong danh sách được chọn.");
-      return res.status(400).json({
-        message: "Ứng viên này chưa nằm trong danh sách được chọn hoàn thành.",
-      });
+      return res.status(404).json({ message: "Không tìm thấy thông tin tuyển dụng." });
     }
 
-    // Tạo offer mới
-    const offer = new Offer({
-      recruitmentId,
+    const recruitmentId = recruitment._id;
+    const jobTitle = recruitment.jobTitle; // Lấy jobTitle từ Recruitment
+
+    // 4. Tạo offer mới
+    const newOffer = new Offer({
       baseSalary,
       salary,
       bonus,
       note,
-      createdBy,
-      updatedBy: createdBy,
+      status: "PENDING",
+      recruitmentId,
     });
 
-    await offer.save();
-    console.log("Offer đã được tạo thành công:", offer);
+    await newOffer.save();
+    console.log("✅ Offer đã được tạo thành công:", newOffer);
 
-    const candidate = await Candidate.findById(recruitment.candidateId);
+    // 5. Lấy thông tin ứng viên để gửi email
+    const candidate = await Candidate.findById(candidateId);
     if (!candidate) {
-      return res.status(404).json({ message: "Không tìm thấy ứng viên." });
+      return res.status(404).json({ message: "Không tìm thấy thông tin ứng viên." });
     }
-    const job = await Job.findById(recruitment.jobId);
-    const jobTitle = job ? job.title : "Không xác định";
-    await sendSalaryProposalEmail(candidate, offer, jobTitle);
 
-    return res.status(200).json({
-      message: "Offer đã được tạo thành công và email đã được gửi!",
-      offer,
+    // 6. Gọi hàm sendSalaryProposalEmail để gửi email
+    await sendSalaryProposalEmail(candidate, newOffer, jobTitle);
+    console.log(`✅ Đã gửi email offer cho: ${candidate.email}`);
+
+    // 7. Phản hồi thành công
+    res.status(201).json({
+      message: "Tạo offer thành công và đã gửi email cho ứng viên.",
+      offer: newOffer,
     });
   } catch (error) {
-    console.error("Lỗi khi tạo offer:", error);
-    return res
-      .status(500)
-      .json({ message: "Lỗi server", error: error.message });
+    console.error("❌ Lỗi khi tạo offer và gửi email:", error);
+    res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
   }
 };
+
+
 
 exports.updateOffer = async (req, res) => {
   try {
