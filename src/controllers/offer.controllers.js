@@ -205,6 +205,34 @@ exports.managerApproveOffer = async (req, res) => {
   }
 };
 
+//trạng thái của offer 
+exports.getOffersByStatus = async (req, res) => {
+  try {
+    const { status, managerStatus, page = 1, limit = 10 } = req.query;
+
+    // Tạo bộ lọc động theo status và managerStatus
+    const filter = {};
+    if (status) filter.status = status;
+    if (managerStatus) filter.managerStatus = managerStatus;
+
+    // Tìm kiếm Offer theo bộ lọc
+    const offers = await Offer.find(filter)
+      .populate("recruitmentId", "jobTitle")
+      .populate("createdBy", "name email")
+      .skip((page - 1) * limit) // Phân trang
+      .limit(Number(limit))    // Giới hạn số kết quả
+      .sort({ createdAt: -1 }); // Sắp xếp theo thời gian tạo mới nhất
+
+    res.status(200).json({
+      message: "Filtered offers fetched successfully",
+      total: offers.length,
+      offers,
+    });
+  } catch (error) {
+    console.error("Error fetching offers by status:", error);
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};
 exports.hrUpdateOfferStatus = async (req, res) => {
   try {
     const { offerId } = req.params;
