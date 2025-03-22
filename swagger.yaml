@@ -1,0 +1,2246 @@
+openapi: 3.0.0
+info:
+  title: "CareerShift"
+  version: "1.0.0"
+  description: "API cho hệ thống quản lý phỏng vấn nội bộ"
+
+servers:
+  - url: http://localhost:9999/api
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Recruitment:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "64a7f89b9d1b2c3d4e5f6a7b"
+        candidateId:
+          type: string
+          example: "64a7f89b9d1b2c3d4e5f6a7c"
+        jobId:
+          type: string
+          example: "12345"
+        cvFile:
+          type: object
+          properties:
+            fileName:
+              type: string
+              example: "nguyenvana_cv.pdf"
+            uploadedAt:
+              type: string
+              format: date-time
+              example: "2024-07-10T08:30:00Z"
+        status:
+          type: string
+          enum: ["ON_PROGRESS", "INTERVIEW", "REJECTED", "HIRED"]
+          example: "ON_PROGRESS"
+        notes:
+          type: string
+          example: "Ứng viên có kinh nghiệm 3 năm"
+        createdBy:
+          type: string
+          example: "admin"
+        updatedBy:
+          type: string
+          example: "admin"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-07-10T08:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-07-10T10:00:00Z"
+paths:
+  # AUTHENTICATION
+  /auth/login:
+    post:
+      summary: Đăng nhập vào hệ thống
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+                password:
+                  type: string
+                  format: password
+                  example: "password123"
+      responses:
+        200:
+          description: Đăng nhập thành công, trả về access token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Đăng nhập thành công"
+                  accessToken:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1..."
+        401:
+          description: Sai email hoặc mật khẩu
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "Mật khẩu không chính xác"
+        403:
+          description: Tài khoản bị vô hiệu hóa
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "Tài khoản bị vô hiệu hóa"
+        423:
+          description: Tài khoản bị khóa tạm thời
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 423
+                  message:
+                    type: string
+                    example: "Tài khoản bị khóa tạm thời. Vui lòng thử lại sau 10 phút"
+        422:
+          description: Tài khoản chưa được xác thực, cần nhập OTP
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 422
+                  message:
+                    type: string
+                    example: "Tài khoản chưa được xác thực. Vui lòng kiểm tra email để nhận mã OTP"
+        500:
+          description: Lỗi máy chủ khi đăng nhập
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 500
+                  message:
+                    type: string
+                    example: "Lỗi máy chủ"
+  /auth/refresh-token:
+    post:
+      summary: Tạo mới access token từ refresh token
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Refresh token thành công, trả về access token mới
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Refresh token thành công"
+                  accessToken:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1..."
+        401:
+          description: Refresh token không hợp lệ hoặc đã hết hạn
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "Refresh token không hợp lệ, vui lòng đăng nhập lại"
+        403:
+          description: Refresh token không trùng khớp với dữ liệu trong hệ thống
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "Refresh token không hợp lệ"
+        500:
+          description: Lỗi máy chủ khi xử lý refresh token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 500
+                  message:
+                    type: string
+                    example: "Lỗi máy chủ"
+  /auth/logout:
+    post:
+      summary: Đăng xuất người dùng
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Đăng xuất thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Đăng xuất thành công"
+        500:
+          description: Lỗi máy chủ khi đăng xuất
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 500
+                  message:
+                    type: string
+                    example: "Lỗi máy chủ"
+  /auth/send-otp:
+    post:
+      summary: Gửi mã OTP để xác thực tài khoản
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: "user@example.com"
+      responses:
+        200:
+          description: OTP đã được gửi thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "OTP đã được gửi, vui lòng kiểm tra email"
+        400:
+          description: Tài khoản đã xác thực
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "Tài khoản đã xác thực"
+        401:
+          description: Tài khoản không tồn tại
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: "Tài khoản không tồn tại"
+        500:
+          description: Lỗi máy chủ khi gửi OTP
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 500
+                  message:
+                    type: string
+                    example: "Lỗi khi gửi OTP"
+  /auth/verify-otp:
+    post:
+      summary: Xác thực tài khoản bằng OTP
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+                otp:
+                  type: string
+                  example: "123456"
+      responses:
+        200:
+          description: Xác thực thành công, trả về access token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "Xác thực thành công"
+                  accessToken:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1..."
+        400:
+          description: OTP không hợp lệ hoặc đã hết hạn
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "OTP không hợp lệ"
+        404:
+          description: Người dùng không tồn tại
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Người dùng không tồn tại"
+        429:
+          description: Quá số lần nhập OTP, tài khoản bị tạm khóa
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 429
+                  message:
+                    type: string
+                    example: "Bạn đã nhập sai OTP quá số lần cho phép. Vui lòng thử lại sau"
+        500:
+          description: Lỗi máy chủ khi xác thực OTP
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 500
+                  message:
+                    type: string
+                    example: "Lỗi máy chủ"
+  # AUTHORIZATION
+  /roles/roles-for-user-assignment:
+    get:
+      summary: Lấy danh sách vai trò để gán cho người dùng
+      tags:
+        - Roles
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Danh sách vai trò trong hệ thống
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      example: 1
+                    name:
+                      type: string
+                      example: "Admin"
+        204:
+          description: Không có vai trò nào trong hệ thống
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Không có vai trò nào trong hệ thống."
+        403:
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Bạn không có quyền truy cập vào tài nguyên này."
+        500:
+          description: Lỗi máy chủ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi server"
+  /roles/role-with-permissions:
+    get:
+      summary: Lấy danh sách vai trò (trừ Admin) kèm quyền hạn
+      description: API này trả về danh sách tất cả vai trò trừ "Admin", kèm theo quyền hạn của từng vai trò. Đồng thời, trả về danh sách toàn bộ quyền có thể gán.
+      tags:
+        - Roles
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Danh sách vai trò và quyền hạn
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  roles:
+                    type: array
+                    description: Danh sách vai trò (ngoại trừ Admin)
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          example: "60b8d295f2df1b001c8b4567"
+                        name:
+                          type: string
+                          example: "HR Manager"
+                        permissions:
+                          type: array
+                          description: Danh sách quyền của vai trò
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                                format: uuid
+                                example: "60b8d295f2df1b001c8b4568"
+                              name:
+                                type: string
+                                example: "VIEW_USERS"
+                  allPermissions:
+                    type: array
+                    description: Danh sách tất cả quyền có thể gán
+                    items:
+                      type: object
+                      properties:
+                        category:
+                          type: string
+                          example: "User Management"
+                        permissions:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                                format: uuid
+                                example: "60b8d295f2df1b001c8b4569"
+                              name:
+                                type: string
+                                example: "EDIT_USERS"
+                              description:
+                                type: string
+                                example: "Chỉnh sửa thông tin người dùng"
+        403:
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Bạn không có quyền truy cập vào tài nguyên này."
+        404:
+          description: Không có vai trò nào trong hệ thống (ngoại trừ Admin)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Không có vai trò nào trong hệ thống (ngoại trừ admin)"
+        500:
+          description: Lỗi máy chủ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Lỗi server"                  
+  /roles/{id}/assign-permissions:
+    put:
+      summary: Gán quyền hạn cho vai trò
+      description: Gán danh sách quyền hạn cho một vai trò cụ thể. Nếu quyền đã tồn tại, nó sẽ không bị thêm lại.
+      tags:
+        - Roles
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID của vai trò cần gán quyền hạn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                permissions:
+                  type: array
+                  description: Danh sách ID quyền cần gán
+                  items:
+                    type: string
+                    format: uuid
+                  example: ["60b8d295f2df1b001c8b4569", "60b8d295f2df1b001c8b4570"]
+      responses:
+        200:
+          description: Quyền hạn của vai trò đã được cập nhật thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Quyền hạn của vai trò đã được cập nhật thành công"
+                  roleId:
+                    type: string
+                    format: uuid
+                    example: "60b8d295f2df1b001c8b4567"
+                  addedPermissions:
+                    type: array
+                    description: Danh sách quyền mới được thêm
+                    items:
+                      type: string
+                      format: uuid
+                    example: ["60b8d295f2df1b001c8b4569"]
+                  currentPermissions:
+                    type: array
+                    description: Danh sách quyền sau khi cập nhật
+                    items:
+                      type: string
+                      format: uuid
+                    example: ["60b8d295f2df1b001c8b4569", "60b8d295f2df1b001c8b4570"]
+        400:
+          description: Danh sách quyền hạn không hợp lệ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Danh sách quyền hạn không hợp lệ. Vui lòng kiểm tra lại ID của quyền."
+                  invalidPermissions:
+                    type: array
+                    items:
+                      type: string
+                    example: ["invalid-permission-1", "invalid-permission-2"]
+        403:
+          description: Không có quyền gán quyền hạn cho vai trò
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Bạn không có quyền thực hiện thao tác này."
+        404:
+          description: Vai trò không tồn tại
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Vai trò không tồn tại"
+        409:
+          description: Tất cả quyền này đã được gán cho vai trò
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Tất cả quyền này đã được gán cho vai trò."
+                  existingPermissions:
+                    type: array
+                    description: Danh sách quyền đã tồn tại
+                    items:
+                      type: string
+                      format: uuid
+                    example: ["60b8d295f2df1b001c8b4569"]
+        500:
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi server."
+                  error:
+                    type: string
+                    example: "Chi tiết lỗi..."
+  /roles/{id}/revoke-permissions:
+    put:
+      summary: Thu hồi quyền hạn của vai trò
+      tags:
+        - Roles
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của vai trò cần thu hồi quyền
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                permissions:
+                  type: array
+                  items:
+                    type: string
+                  example: ["60b8d295f2df1b001c8b4569", "60b8d295f2df1b001c8b4570"]
+      responses:
+        200:
+          description: Thu hồi quyền thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Thu hồi quyền thành công"
+                  roleId:
+                    type: string
+                    example: "60b8d295f2df1b001c8b4567"
+                  revokedPermissions:
+                    type: array
+                    items:
+                      type: string
+                    example: ["60b8d295f2df1b001c8b4569"]
+                  notFoundPermissions:
+                    type: array
+                    items:
+                      type: string
+                    example: ["60b8d295f2df1b001c8b4571"]
+                  updatedPermissions:
+                    type: array
+                    items:
+                      type: string
+                    example: ["60b8d295f2df1b001c8b4570"]
+        400:
+          description: Danh sách quyền không hợp lệ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Danh sách quyền không hợp lệ"
+        404:
+          description: Vai trò không tồn tại
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Vai trò không tồn tại"
+        409:
+          description: Không có quyền nào để thu hồi hoặc quyền không thuộc vai trò này
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Vai trò này không có quyền nào để thu hồi"
+        500:
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi server."
+                  error:
+                    type: string
+                    example: "Chi tiết lỗi..."   
+  # USER MANAGEMENT 
+  /users:
+    get:
+      summary: Lấy danh sách tất cả người dùng (trừ người gọi API)
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Danh sách người dùng được lấy thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                      example: "60d0fe4f5311236168a109ca"
+                    email:
+                      type: string
+                      example: "user@example.com"
+                    roles:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                            example: "60d0fe4f5311236168a109cb"
+                          name:
+                            type: string
+                            example: "Admin"
+        403:
+          description: Người dùng không có quyền xem danh sách người dùng
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Bạn chưa có quyền hạn nào"
+        500:
+          description: Lỗi máy chủ khi lấy danh sách người dùng
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi máy chủ"  
+    post:
+      summary: Tạo mới một người dùng
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Nguyễn Văn A"
+                email:
+                  type: string
+                  example: "user@example.com"
+                roles:
+                  type: array
+                  items:
+                    type: string
+                  example: ["60d0fe4f5311236168a109cb"]
+      responses:
+        201:
+          description: Người dùng đã được tạo thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Người dùng đã được tạo thành công"
+        400:
+          description: Thiếu thông tin hoặc dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Thiếu thông tin hoặc dữ liệu không hợp lệ"
+        401:
+          description: Người dùng chưa đăng nhập
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Không có quyền truy cập"
+        403:
+          description: Người dùng không có quyền tạo tài khoản mới
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Bạn không có quyền thực hiện hành động này"
+        500:
+          description: Lỗi máy chủ khi tạo người dùng
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi máy chủ"               
+  /users/profile/me:
+    get:
+      summary: Lấy thông tin hồ sơ cá nhân của người dùng hiện tại
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Lấy thông tin cá nhân thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    example: "60d0fe4f5311236168a109ca"
+                  email:
+                    type: string
+                    example: "user@example.com"
+                  fullName:
+                    type: string
+                    example: "Nguyễn Văn A"
+                  roles:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                          example: "60d0fe4f5311236168a109cb"
+                        name:
+                          type: string
+                          example: "User"
+        401:
+          description: Người dùng chưa đăng nhập
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Không có quyền truy cập"
+        403:
+          description: Người dùng không có quyền xem hồ sơ cá nhân
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Bạn không có quyền xem hồ sơ"
+        404:
+          description: Không tìm thấy người dùng
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Không tìm thấy người dùng"
+        500:
+          description: Lỗi máy chủ khi lấy hồ sơ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi máy chủ" 
+    put:
+      summary: Cập nhật thông tin cá nhân của người dùng hiện tại
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Nguyễn Văn A"
+                phone:
+                  type: string
+                  example: "0987654321"
+      responses:
+        200:
+          description: Cập nhật thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Cập nhật thành công"
+                  user:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        example: "Nguyễn Văn A"
+                      phone:
+                        type: string
+                        example: "0987654321"
+        400:
+          description: Thiếu thông tin hoặc dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Thiếu thông tin hoặc dữ liệu không hợp lệ"
+        401:
+          description: Người dùng chưa xác thực
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Không có quyền truy cập"
+        404:
+          description: Người dùng không tồn tại
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Người dùng không tồn tại"
+        500:
+          description: Lỗi máy chủ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi server"                 
+  /users/{id}/whoami:
+    get:
+      summary: Lấy thông tin chi tiết của người dùng theo ID
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của người dùng cần lấy thông tin
+      responses:
+        200:
+          description: Lấy thông tin người dùng thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "60d0fe4f5311236168a109ca"
+                  name:
+                    type: string
+                    example: "Nguyễn Văn A"
+                  email:
+                    type: string
+                    example: "user@example.com"
+                  role:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: "60d0fe4f5311236168a109cb"
+                      name:
+                        type: string
+                        example: "Admin"
+                  permissions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: "60d0fe4f5311236168a109cc"
+                        name:
+                          type: string
+                          example: "VIEW_ALL_USERS"
+        400:
+          description: ID không hợp lệ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "ID không hợp lệ"
+        401:
+          description: Người dùng chưa đăng nhập
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Không có quyền truy cập"
+        404:
+          description: Không tìm thấy người dùng
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Người dùng không tồn tại"
+        500:
+          description: Lỗi máy chủ khi lấy thông tin người dùng
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi máy chủ"  
+  /users/{id}/reset-password:
+    post:
+      summary: Đặt lại mật khẩu của người dùng
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của người dùng cần đặt lại mật khẩu
+      responses:
+        200:
+          description: Mật khẩu đã được đặt lại, người dùng sẽ bị đăng xuất
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Mật khẩu đã được đặt lại, người dùng sẽ bị đăng xuất và phải đổi mật khẩu mới"
+        400:
+          description: Yêu cầu không hợp lệ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Yêu cầu không hợp lệ"
+        401:
+          description: Người dùng chưa đăng nhập
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Không có quyền truy cập"
+        403:
+          description: Người dùng không có quyền đặt lại mật khẩu
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Bạn không có quyền thực hiện hành động này"
+        404:
+          description: Người dùng không tồn tại
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Người dùng không tồn tại"
+        500:
+          description: Lỗi máy chủ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi server"
+                  error:
+                    type: string
+                    example: "Chi tiết lỗi"        
+  /users/change-password:
+    post:
+      summary: Thay đổi mật khẩu của người dùng
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: "user@example.com"
+                currentPassword:
+                  type: string
+                  example: "oldpassword123"
+                newPassword:
+                  type: string
+                  example: "newpassword456"
+      responses:
+        200:
+          description: Thay đổi mật khẩu thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Thay đổi mật khẩu thành công"
+        400:
+          description: Yêu cầu không hợp lệ (mật khẩu ngắn, sai mật khẩu, trùng mật khẩu cũ, thiếu dữ liệu)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Mật khẩu hiện tại không chính xác"
+        401:
+          description: Người dùng chưa đăng nhập
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Không có quyền truy cập"
+        404:
+          description: Email không tồn tại
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Email không tồn tại"
+        500:
+          description: Lỗi máy chủ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Lỗi server"     
+  /users/{id}:
+    put:
+      summary: Cập nhật thông tin người dùng (chỉ Admin)
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của người dùng cần cập nhật
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Nguyễn Văn A"
+                email:
+                  type: string
+                  example: "user@example.com"
+                phone:
+                  type: string
+                  example: "0987654321"
+                status:
+                  type: string
+                  enum: [ACTIVE, INACTIVE, LOCKED]
+                  example: "ACTIVE"
+                verified:
+                  type: boolean
+                  example: true
+                roles:
+                  type: array
+                  items:
+                    type: string
+                  example: ["65dce32b4f2b4a001c8e8f97"]
+      responses:
+        200:
+          description: Cập nhật thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Cập nhật thành công"
+                  updatedUser:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: "65dce32b4f2b4a001c8e8f97"
+                      name:
+                        type: string
+                        example: "Nguyễn Văn A"
+                      email:
+                        type: string
+                        example: "user@example.com"
+                      phone:
+                        type: string
+                        example: "0987654321"
+                      status:
+                        type: string
+                        example: "ACTIVE"
+                      verified:
+                        type: boolean
+                        example: true
+                      roles:
+                        type: array
+                        items:
+                          type: string
+                        example: ["65dce32b4f2b4a001c8e8f97"]
+        400:
+          description: Dữ liệu không hợp lệ hoặc email đã tồn tại
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Email đã tồn tại"
+        401:
+          description: Người dùng chưa xác thực
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Không có quyền truy cập"
+        404:
+          description: Người dùng không tồn tại
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Người dùng không tồn tại"
+        500:
+          description: Lỗi máy chủ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi server"   
+    delete:
+      summary: Xóa người dùng theo ID
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của người dùng cần xóa
+      responses:
+        200:
+          description: Xóa người dùng thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Xóa người dùng thành công"
+        404:
+          description: Người dùng không tồn tại
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Người dùng không tồn tại"
+        401:
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Không có quyền truy cập"
+        500:
+          description: Lỗi máy chủ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi server"                
+  /users/{id}/status:
+    patch:
+      summary: Kích hoạt hoặc vô hiệu hóa người dùng
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của người dùng
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [ACTIVE, INACTIVE]
+                  example: "ACTIVE"
+      responses:
+        200:
+          description: Cập nhật trạng thái thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Tài khoản Nguyễn Văn A - user@email.com đã được kích hoạt thành công"
+        400:
+          description: Dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Trạng thái không hợp lệ"
+        404:
+          description: Người dùng không tồn tại
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Người dùng không tồn tại"
+        401:
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Không có quyền truy cập"
+        500:
+          description: Lỗi máy chủ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi server"     
+  /users/{id}/roles:
+    patch:
+      summary: Gán vai trò mới cho người dùng
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID của người dùng
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                roles:
+                  type: array
+                  items:
+                    type: string
+                  example: ["ADMIN", "HR", "INTERVIEWER", "MANAGER"]
+      responses:
+        200:
+          description: Gán vai trò thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Gán vai trò mới thành công cho người dùng Nguyễn Văn A - user@email.com"
+        400:
+          description: Dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Vai trò không hợp lệ"
+        404:
+          description: Người dùng không tồn tại
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Người dùng không tồn tại"
+        401:
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Không có quyền truy cập"
+        500:
+          description: Lỗi máy chủ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi server"  
+  # RECRUITMENT
+  /recruitments/stages/{jobId}:
+    get:
+      summary: Lấy danh sách ứng viên theo giai đoạn tuyển dụng
+      tags:
+        - Recruitments
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+          description: ID của công việc cần lấy danh sách ứng viên
+      responses:
+        200:
+          description: Danh sách ứng viên theo giai đoạn tuyển dụng
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  SCREENING:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Recruitment'
+                  INTERVIEWING:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Recruitment'
+                  OFFER_SIGNING:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Recruitment'
+                  rejectedCandidates:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Recruitment'
+        401:
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Không có quyền truy cập"
+        404:
+          description: Không tìm thấy công việc
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Không tìm thấy công việc"
+        500:
+          description: Lỗi máy chủ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi server"   
+  /recruitments/{jobId}:
+    post:
+      summary: Ứng tuyển vào công việc
+      tags:
+        - Recruitments
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+          description: ID của công việc cần ứng tuyển
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                candidate:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      example: "Nguyễn Văn A"
+                    email:
+                      type: string
+                      example: "nguyenvana@example.com"
+                cvFile:
+                  type: string
+                  format: binary
+                  description: Tệp tin CV của ứng viên (PDF, DOCX, v.v.)
+                notes:
+                  type: string
+                  example: "Ứng viên có kinh nghiệm 3 năm"
+                continued:
+                  type: boolean
+                  example: true
+                createdBy:
+                  type: string
+                  example: "admin"
+                updatedBy:
+                  type: string
+                  example: "admin"
+      responses:
+        201:
+          description: Ứng tuyển thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Ứng tuyển thành công"
+                  recruitment:
+                    $ref: '#/components/schemas/Recruitment'
+        200:
+          description: Cập nhật hồ sơ ứng tuyển thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Cập nhật hồ sơ ứng tuyển thành công"
+                  recruitment:
+                    $ref: '#/components/schemas/Recruitment'
+        400:
+          description: Thiếu thông tin ứng viên hoặc CV
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Candidate email is required"
+        500:
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi server."      
+    delete:
+      summary: Xóa ứng tuyển
+      tags:
+        - Recruitments
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: recruitmentId
+          required: true
+          schema:
+            type: string
+          description: ID của quá trình ứng tuyển cần xóa
+      responses:
+        200:
+          description: Ứng tuyển đã xóa thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Ứng tuyển đã xóa thành công"
+        401:
+          description: Chưa đăng nhập hoặc token không hợp lệ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Unauthorized - Vui lòng đăng nhập"
+        403:
+          description: Không có quyền xóa ứng tuyển này
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Bạn không có quyền xóa ứng tuyển này"
+        404:
+          description: Không tìm thấy ứng tuyển
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Ứng tuyển có ID {recruitmentId} không tồn tại"
+        500:
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi server."   
+  /recruitments/{recruitmentId}:
+    put:
+      summary: Cập nhật thông tin ứng tuyển
+      tags:
+        - Recruitments
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: recruitmentId
+          required: true
+          schema:
+            type: string
+          description: ID của quá trình ứng tuyển cần cập nhật
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - candidate
+                - cvFile
+                - status
+                - notes
+                - updatedBy
+              properties:
+                candidate:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      example: "Nguyễn Văn A"
+                    phone:
+                      type: string
+                      example: "0987654321"
+                    source:
+                      type: string
+                      example: "LinkedIn"
+                    isPotential:
+                      type: boolean
+                      example: true
+                    email:
+                      type: string
+                      example: "nguyenvana@example.com"
+                cvFile:
+                  type: object
+                  properties:
+                    fileName:
+                      type: string
+                      example: "resume.pdf"
+                    fileUrl:
+                      type: string
+                      example: "https://example.com/resume.pdf"
+                status:
+                  type: string
+                  example: "Pending"
+                notes:
+                  type: string
+                  example: "Ứng viên tiềm năng, xem xét phỏng vấn vòng 2"
+                updatedBy:
+                  type: string
+                  example: "HR Manager"
+      responses:
+        200:
+          description: Ứng tuyển đã được cập nhật thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Ứng tuyển được cập nhật thành công"
+                  recruitment:
+                    type: object
+                    properties:
+                      candidate:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                            example: "Nguyễn Văn A"
+                          email:
+                            type: string
+                            example: "nguyenvana@example.com"
+                          phone:
+                            type: string
+                            example: "0987654321"
+                          status:
+                            type: string
+                            example: "Pending"
+                          isPotential:
+                            type: boolean
+                            example: true
+                      job:
+                        type: object
+                        properties:
+                          title:
+                            type: string
+                            example: "Software Engineer"
+                          source_url:
+                            type: string
+                            example: "https://example.com/job/software-engineer"
+        400:
+          description: Dữ liệu không hợp lệ hoặc thiếu thông tin
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Thiếu trường bắt buộc: candidate, status, notes"
+        401:
+          description: Chưa đăng nhập hoặc token không hợp lệ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Unauthorized - Vui lòng đăng nhập"
+        403:
+          description: Không có quyền cập nhật ứng tuyển này
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Bạn không có quyền cập nhật ứng tuyển này"
+        404:
+          description: Không tìm thấy ứng tuyển
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Ứng tuyển có ID {recruitmentId} không tồn tại"
+        500:
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi server."  
+  /recruitments/{jobId}/{recruitmentId}:
+    get:
+      summary: Lấy thông tin chi tiết của một ứng tuyển
+      tags:
+        - Recruitments
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+          description: ID của công việc liên quan đến ứng tuyển
+        - in: path
+          name: recruitmentId
+          required: true
+          schema:
+            type: string
+          description: ID của ứng tuyển cần lấy thông tin
+      responses:
+        200:
+          description: Trả về thông tin chi tiết của ứng tuyển
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Recruitment fetched successfully"
+                  recruitment:
+                    type: object
+                    properties:
+                      candidate:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                            example: "Nguyễn Văn A"
+                          email:
+                            type: string
+                            example: "nguyenvana@example.com"
+                          phone:
+                            type: string
+                            example: "0987654321"
+                          status:
+                            type: string
+                            example: "Pending"
+                          isPotential:
+                            type: boolean
+                            example: true
+                      job:
+                        type: object
+                        properties:
+                          title:
+                            type: string
+                            example: "Software Engineer"
+                          source_url:
+                            type: string
+                            example: "https://example.com/job/software-engineer"
+        400:
+          description: Dữ liệu không hợp lệ hoặc thiếu thông tin
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invalid request parameters"
+        404:
+          description: Không tìm thấy ứng tuyển
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Recruitment not found"
+        500:
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi server."   
+  /recruitments/{recruitmentId}/send-interview:
+    post:
+      summary: Gửi lời mời phỏng vấn đến ứng viên
+      tags:
+        - Recruitments
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: recruitmentId
+          required: true
+          schema:
+            type: string
+          description: ID của quá trình tuyển dụng
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deadline:
+                  type: string
+                  format: date-time
+                  example: "2024-07-15T23:59:59.000Z"
+      responses:
+        200:
+          description: Gửi lời mời phỏng vấn thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lời mời phỏng vấn đã được gửi thành công"
+        400:
+          description: Thiếu thông tin thời hạn phản hồi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Vui lòng nhập thời hạn phản hồi lời mời phỏng vấn."
+        404:
+          description: Không tìm thấy thông tin tuyển dụng, công việc hoặc ứng viên
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Không tìm thấy thông tin tuyển dụng"
+        500:
+          description: Lỗi server hoặc lỗi khi gửi email
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi server."
+                  error:
+                    type: string
+                    example: "Chi tiết lỗi..."    
+  /recruitments/{recruitmentId}/update-interview-response:
+    post:
+      summary: Cập nhật trạng thái ứng tuyển của ứng viên
+      tags:
+        - Recruitments
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: recruitmentId
+          required: true
+          schema:
+            type: string
+          description: ID của quá trình tuyển dụng
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: "Accepted"
+      responses:
+        200:
+          description: Cập nhật trạng thái thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Đã cập nhật trạng thái tuyển dụng thành Accepted"
+        400:
+          description: Thiếu trạng thái tuyển dụng
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Vui lòng nhập trạng thái ứng tuyển"
+        404:
+          description: Không tìm thấy thông tin tuyển dụng
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Không tìm thấy thông tin tuyển dụng"
+        500:
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lỗi server."      
+                                                                                                                                           
+                                                                                                            

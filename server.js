@@ -5,7 +5,8 @@ const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const routes = require("./src/routes");
 const connectDB = require("./src/config/db");
-// const redis = require("./src/config/redis");
+const redis = require("./src/config/redis");
+const swaggerDocs = require("./src/config/swagger");
 require("dotenv").config();
 
 const PORT = process.env.PORT || 9999;
@@ -29,6 +30,8 @@ app.use(
 // redis.on("error", (err) => {
 //   console.error("Redis error:", err);
 // });
+
+swaggerDocs(app);
 
 app.use("/api", routes);
 
