@@ -36,7 +36,6 @@ router.post(
   hasPermission(["RESET_PASSWORD"]),
   userController.resetPassword
 );
-router.post("/reset-password", userController.resetPassword);
 router.post(
   "/change-password",
   authenticateToken,
