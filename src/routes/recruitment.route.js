@@ -46,10 +46,10 @@ router.put(
   recruitmentController.updateRecruitment
 );
 router.get(
-  "/:jobId/:recruitmentId",
-  authenticateToken,
-  authorizeRole(["HR", "Admin"]),
-  hasPermission(["VIEW_RECRUITMENT_DETAILS"]),
+  "/:recruitmentId",
+  // authenticateToken,
+  // authorizeRole(["HR", "Admin"]),
+  // hasPermission(["VIEW_RECRUITMENT_DETAILS"]),
   recruitmentController.getRecruitmentById
 );
 router.post(
