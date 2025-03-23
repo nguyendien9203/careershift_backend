@@ -70,12 +70,16 @@ exports.getUserInfo = async (req, res) => {
 
     res.status(StatusCodes.OK).json({
       id: user._id,
+      name: user.name,
       email: user.email,
       role: {
         id: user.roles._id,
         name: user.roles.name,
       },
-      permissions: permissions,
+      permissions: permissions.map((perm) => ({
+        id: perm._id,
+        name: perm.name,
+      })),
     });
   } catch (error) {
     res
