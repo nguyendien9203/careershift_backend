@@ -115,6 +115,7 @@ exports.updateOffer = async (req, res) => {
   }
 };
 
+
 exports.managerApproveOffer = async (req, res) => {
   try {
     const { offerId } = req.params;
@@ -217,22 +218,36 @@ exports.getOffersByStatus = async (req, res) => {
 
     // Tìm kiếm Offer theo bộ lọc
     const offers = await Offer.find(filter)
-      .populate("recruitmentId", "jobTitle")
+      .populate("recruitmentId", "_id")  // Chỉ lấy trường _id từ recruitmentId
       .populate("createdBy", "name email")
       .skip((page - 1) * limit) // Phân trang
       .limit(Number(limit))    // Giới hạn số kết quả
       .sort({ createdAt: -1 }); // Sắp xếp theo thời gian tạo mới nhất
-
+console.log(offers);
+    // Đảm bảo trả về đúng định dạng với total số lượng và danh sách offers
     res.status(200).json({
       message: "Filtered offers fetched successfully",
       total: offers.length,
-      offers,
+      offers: offers.map(offer => ({
+        id: offer._id,
+        recruitmentId: offer.recruitmentId._id,  // Trả về _id của recruitmentId thay vì toàn bộ object
+        baseSalary: offer.baseSalary,
+        bonus: offer.bonus,
+        approvalRequired: offer.approvalRequired,
+        negotiatedSalary: offer.negotiatedSalary,
+        salary: offer.salary,
+        status: offer.status,
+        managerStatus: offer.managerStatus,
+        createdAt: offer.createdAt,
+        updatedAt: offer.updatedAt,
+      }))
     });
   } catch (error) {
     console.error("Error fetching offers by status:", error);
     res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
+
 exports.hrUpdateOfferStatus = async (req, res) => {
   try {
     const { offerId } = req.params;
