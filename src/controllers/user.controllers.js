@@ -66,7 +66,7 @@ exports.getUserInfo = async (req, res) => {
 
     const permissions = await Permission.find({
       _id: { $in: user.roles.permissions },
-    }).select("_id name");
+    }).select("_id name description");
 
     res.status(StatusCodes.OK).json({
       id: user._id,
@@ -79,6 +79,7 @@ exports.getUserInfo = async (req, res) => {
       permissions: permissions.map((perm) => ({
         id: perm._id,
         name: perm.name,
+        description: perm.description,
       })),
     });
   } catch (error) {

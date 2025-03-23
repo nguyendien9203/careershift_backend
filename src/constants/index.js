@@ -6,6 +6,7 @@ exports.UserStatus = Object.freeze({
 });
 
 exports.RecruitmentStage = Object.freeze({
+  REJECTED: "REJECTED",
   SCREENING: "SCREENING",
   INTERVIEWING: "INTERVIEWING",
   OFFER_SIGNING: "OFFER_SIGNING",

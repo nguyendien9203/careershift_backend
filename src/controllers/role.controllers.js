@@ -144,7 +144,7 @@ exports.getRolesWithPermissions = async (req, res) => {
         acc.push(category);
       }
       category.permissions.push({
-        id: perm._id,
+        _id: perm._id,
         name: perm.name,
         description: perm.description,
       });

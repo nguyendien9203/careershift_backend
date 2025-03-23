@@ -74,25 +74,29 @@ exports.getCandidatesByStage = async (req, res) => {
       .lean();
 
     const stageData = {
+      [RecruitmentStage.REJECTED]: [],
       [RecruitmentStage.SCREENING]: [],
       [RecruitmentStage.INTERVIEWING]: [],
       [RecruitmentStage.OFFER_SIGNING]: [],
-      rejectedCandidates: [],
     };
 
     recruitments.forEach((recruitment) => {
+      const formattedRecruitment = {
+        ...recruitment,
+        candidate: recruitment.candidateId,
+      };
       switch (recruitment.status) {
         case RecruitmentStatus.ON_PROGRESS:
-          stageData[RecruitmentStage.SCREENING].push(recruitment);
+          stageData[RecruitmentStage.SCREENING].push(formattedRecruitment);
           break;
         case RecruitmentStatus.INTERVIEW:
-          stageData[RecruitmentStage.INTERVIEWING].push(recruitment);
+          stageData[RecruitmentStage.INTERVIEWING].push(formattedRecruitment);
           break;
         case RecruitmentStatus.HIRED:
-          stageData[RecruitmentStage.OFFER_SIGNING].push(recruitment);
+          stageData[RecruitmentStage.OFFER_SIGNING].push(formattedRecruitment);
           break;
         case RecruitmentStatus.REJECTED:
-          stageData.rejectedCandidates.push(recruitment);
+          stageData[RecruitmentStage.REJECTED].push(formattedRecruitment);
           break;
       }
     });
@@ -177,12 +181,10 @@ exports.updateRecruitment = async (req, res) => {
       .populate("jobId", "-_id title source_url")
       .lean();
 
-    res
-      .status(200)
-      .json({
-        message: "Ứng tuyển được cập nhật",
-        recruitment: updatedRecruitment,
-      });
+    res.status(200).json({
+      message: "Ứng tuyển được cập nhật",
+      recruitment: updatedRecruitment,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -263,7 +265,7 @@ exports.updateRecruitmentStatus = async (req, res) => {
     const recruitment = await Recruitment.findById(req.params.recruitmentId);
     if (!recruitment) {
       return res.status(404).json({
-        success: false,
+        status: 404,
         message: "Không tìm thấy thông tin tuyển dụng",
       });
     }
@@ -272,7 +274,8 @@ exports.updateRecruitmentStatus = async (req, res) => {
     await recruitment.save();
 
     return res.status(200).json({
-      message: `Đã cập nhật trạng thái tuyển dụng thành ${status}`,
+      status: 200,
+      message: "Đã cập nhật trạng thái tuyển dụng",
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
