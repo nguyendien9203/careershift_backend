@@ -22,6 +22,7 @@ app.use(
   })
 );
 
+
 // redis.on("connect", () => {
 //   console.log("Connected to Redis");
 // });

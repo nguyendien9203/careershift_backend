@@ -7,6 +7,7 @@ const {
   updateInterviewStage,
   updateInterview,
   updateFinalStatus,
+  getRecruitmentOptions,getUsers
 } = require("../controllers/interview.controllers");
 
 const router = express.Router();
@@ -85,5 +86,6 @@ router.post("/createInterviewStage", createInterviewStage);
 router.post("/updateInterviewDateTime", updateInterviewDateTime);
 
 router.post("/updateFinalStatus", updateFinalStatus);
-
+router.get("/recruitment-options", getRecruitmentOptions);
+router.get("/userss", getUsers); 
 module.exports = router;

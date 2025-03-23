@@ -30,34 +30,50 @@ const getInterviewById = async (req, res) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: "Invalid ID" });
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid interview ID format" 
+      });
     }
 
     const interview = await Interview.findById(id)
-      .populate("recruitmentId", "candidateId jobJd status")
+      .populate({
+        path: "recruitmentId",
+        select: "candidateId jobId status",
+        populate: [
+          { path: "candidateId", select: "name email" },
+          { path: "jobId", select: "title" },
+        ],
+      })
       .populate("stages.interviewerIds", "name email")
       .populate("createdBy", "name email")
       .populate("updatedBy", "name email");
 
     if (!interview) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Interview not found" });
+      return res.status(404).json({ 
+        success: false, 
+        message: "Interview not found" 
+      });
     }
 
-    return res.status(200).json({ success: true, data: interview });
+    return res.status(200).json({ 
+      success: true, 
+      data: interview 
+    });
   } catch (error) {
     console.error("Error fetching interview:", error);
     return res.status(500).json({
       success: false,
-      message: "Server error",
+      message: "Internal server error",
       error: error.message,
     });
   }
 };
 
-// Create new interview
 
+
+// Create new interview
+  
 const createInterview = async (req, res) => {
   try {
     const {
@@ -191,8 +207,7 @@ const updateInterviewStage = async (req, res) => {
       if (typeof score !== "object" || Object.keys(score).length === 0) {
         return res.status(400).json({
           success: false,
-          message:
-            "Điểm phải là một đối tượng không rỗng chứa tiêu chí và giá trị",
+          message: "Điểm phải là một đối tượng không rỗng chứa tiêu chí và giá trị",
         });
       }
 
@@ -200,9 +215,7 @@ const updateInterviewStage = async (req, res) => {
       const scoresValid = scoreEntries.every(([key, value]) => {
         const isValid = Number.isFinite(value) && value >= 0 && value <= 10;
         if (!isValid) {
-          console.log(
-            `Điểm không hợp lệ cho ${key}: ${value} (kiểu: ${typeof value})`
-          );
+          console.log(`Điểm không hợp lệ cho ${key}: ${value} (kiểu: ${typeof value})`);
         }
         return isValid;
       });
@@ -529,6 +542,77 @@ const updateFinalStatus = async (req, res) => {
   }
 };
 
+
+
+const getRecruitmentOptions = async (req, res) => {
+  try {
+    // Fetch all recruitments and populate candidateId and jobId
+    const recruitments = await Recruitment.find()
+      .populate("candidateId", "name") // Populate candidate name
+      .populate("jobId", "title"); // Populate job title
+
+    // Log raw data for debugging
+    console.log("Raw recruitments from DB:", JSON.stringify(recruitments, null, 2));
+
+    // Map recruitments to options, with safety checks
+    const recruitmentOptions = recruitments.map((recruitment) => {
+      const candidateName = recruitment.candidateId?.name || "Unknown Candidate";
+      const jobTitle = recruitment.jobId?.title || "Unknown Job";
+
+      if (!recruitment.candidateId) {
+        console.warn(`Recruitment ${recruitment._id} has no candidateId`);
+      }
+      if (!recruitment.jobId) {
+        console.warn(`Recruitment ${recruitment._id} has no jobId`);
+      }
+
+      return {
+        recruitmentId: recruitment._id,
+        label: `${candidateName} - ${jobTitle}`,
+      };
+    });
+
+    // Log the final mapped options
+    console.log("Mapped recruitment options:", recruitmentOptions);
+
+    return res.status(200).json({
+      success: true,
+      count: recruitmentOptions.length,
+      data: recruitmentOptions,
+    });
+  } catch (error) {
+    console.error("Error fetching recruitment options:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching recruitment options",
+      error: error.message,
+    });
+  }
+};
+
+
+
+const getUsers = async (req, res) => {
+  try {
+    // Lấy danh sách người dùng
+    const users = await User.find() // Chỉ lấy người dùng có trạng thái ACTIVE
+      .select("_id email ") // Chỉ lấy các trường _id và email
+      .lean(); // Chuyển đổi thành plain JavaScript object để tối ưu hiệu suất
+
+    // Trả về trực tiếp mảng users
+    return res.status(200).json(users);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching users",
+      error: error.message,
+    });
+  }
+};
+
+// ... (rest of the controller remains unchanged)
+
 module.exports = {
   getInterviews,
   getInterviewById,
@@ -536,4 +620,6 @@ module.exports = {
   updateInterviewStage,
   updateInterview,
   updateFinalStatus,
+  getRecruitmentOptions,
+  getUsers
 };
