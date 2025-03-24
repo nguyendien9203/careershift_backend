@@ -10,7 +10,6 @@ const {
   sendOnboardingEmail,
 } = require("../config/mailer");
 
-
 //tạo offer
 exports.createOffer = async (req, res) => {
   try {
@@ -25,7 +24,9 @@ exports.createOffer = async (req, res) => {
       selectedCandidateId: objectIdCandidateId,
     });
     if (!candidateComparison) {
-      return res.status(404).json({ message: "Không tìm thấy ứng viên trúng tuyển." });
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy ứng viên trúng tuyển." });
     }
 
     // 3. Tìm Recruitment theo candidateId và jobId
@@ -34,7 +35,9 @@ exports.createOffer = async (req, res) => {
       jobId: candidateComparison.jobId,
     });
     if (!recruitment) {
-      return res.status(404).json({ message: "Không tìm thấy thông tin tuyển dụng." });
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy thông tin tuyển dụng." });
     }
 
     const recruitmentId = recruitment._id;
@@ -56,7 +59,9 @@ exports.createOffer = async (req, res) => {
     // 5. Lấy thông tin ứng viên để gửi email
     const candidate = await Candidate.findById(candidateId);
     if (!candidate) {
-      return res.status(404).json({ message: "Không tìm thấy thông tin ứng viên." });
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy thông tin ứng viên." });
     }
 
     // 6. Gọi hàm sendSalaryProposalEmail để gửi email
@@ -73,8 +78,6 @@ exports.createOffer = async (req, res) => {
     res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
   }
 };
-
-
 
 exports.updateOffer = async (req, res) => {
   try {
@@ -114,7 +117,6 @@ exports.updateOffer = async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
-
 
 exports.managerApproveOffer = async (req, res) => {
   try {
@@ -206,7 +208,7 @@ exports.managerApproveOffer = async (req, res) => {
   }
 };
 
-//trạng thái của offer 
+//trạng thái của offer
 exports.getOffersByStatus = async (req, res) => {
   try {
     const { status, managerStatus, page = 1, limit = 10 } = req.query;
@@ -218,19 +220,19 @@ exports.getOffersByStatus = async (req, res) => {
 
     // Tìm kiếm Offer theo bộ lọc
     const offers = await Offer.find(filter)
-      .populate("recruitmentId", "_id")  // Chỉ lấy trường _id từ recruitmentId
+      .populate("recruitmentId", "_id") // Chỉ lấy trường _id từ recruitmentId
       .populate("createdBy", "name email")
       .skip((page - 1) * limit) // Phân trang
-      .limit(Number(limit))    // Giới hạn số kết quả
+      .limit(Number(limit)) // Giới hạn số kết quả
       .sort({ createdAt: -1 }); // Sắp xếp theo thời gian tạo mới nhất
-console.log(offers);
+    console.log(offers);
     // Đảm bảo trả về đúng định dạng với total số lượng và danh sách offers
     res.status(200).json({
       message: "Filtered offers fetched successfully",
       total: offers.length,
-      offers: offers.map(offer => ({
+      offers: offers.map((offer) => ({
         id: offer._id,
-        recruitmentId: offer.recruitmentId._id,  // Trả về _id của recruitmentId thay vì toàn bộ object
+        recruitmentId: offer.recruitmentId._id, // Trả về _id của recruitmentId thay vì toàn bộ object
         baseSalary: offer.baseSalary,
         bonus: offer.bonus,
         approvalRequired: offer.approvalRequired,
@@ -240,31 +242,106 @@ console.log(offers);
         managerStatus: offer.managerStatus,
         createdAt: offer.createdAt,
         updatedAt: offer.updatedAt,
-      }))
+      })),
     });
   } catch (error) {
     console.error("Error fetching offers by status:", error);
-    res.status(500).json({ message: "Internal server error", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
   }
 };
+
+// exports.hrUpdateOfferStatus = async (req, res) => {
+//   try {
+//     const { offerId } = req.params;
+//     const { action, updatedBy } = req.body; // action = "ACCEPT" hoặc "REJECT"
+
+//     const offer = await Offer.findById(offerId);
+//     if (!offer) {
+//       return res.status(404).json({ message: "Offer not found" });
+//     }
+
+//     if (offer.status !== "SENT") {
+//       return res
+//         .status(400)
+//         .json({ message: "Offer is not in a valid state for HR update" });
+//     }
+
+//     // Lấy thông tin recruitment để xác định candidate
+//     const recruitmentData = await Recruitment.findById(
+//       offer.recruitmentId
+//     ).lean();
+//     if (!recruitmentData || !recruitmentData.candidateId) {
+//       return res
+//         .status(404)
+//         .json({ message: "Recruitment data not found or missing candidateId" });
+//     }
+
+//     // Lấy danh sách ứng viên đã vượt phỏng vấn
+//     const candidates = await getCompletedComparisons();
+//     if (!candidates || !Array.isArray(candidates) || candidates.length === 0) {
+//       return res.status(404).json({ message: "No candidates found" });
+//     }
+
+//     // Tìm ứng viên trong danh sách
+//     const candidate = candidates.find(
+//       (c) => c._id?.toString() === recruitmentData.candidateId?.toString()
+//     );
+//     if (!candidate) {
+//       return res.status(404).json({ message: "Candidate not found" });
+//     }
+
+//     if (action === "ACCEPT") {
+//       offer.status = "ACCEPTED";
+
+//       if (!candidate || !candidate.email) {
+//         console.error("❌ Candidate email is missing or undefined.", candidate);
+//       } else {
+//         try {
+//           await sendOnboardingEmail(candidate, offer);
+//         } catch (emailError) {
+//           console.error("❌ Failed to send onboarding email:", emailError);
+//         }
+//       }
+//     } else if (action === "REJECT") {
+//       offer.status = "REJECTED";
+//     } else {
+//       return res.status(400).json({ message: "Invalid action" });
+//     }
+
+//     if (updatedBy) {
+//       offer.updatedBy = updatedBy;
+//     }
+//     await offer.save();
+
+//     res
+//       .status(200)
+//       .json({ message: `Offer status updated to ${offer.status}`, offer });
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error", error });
+//   }
+// };
 
 exports.hrUpdateOfferStatus = async (req, res) => {
   try {
     const { offerId } = req.params;
     const { action, updatedBy } = req.body; // action = "ACCEPT" hoặc "REJECT"
 
+    // 1. Tìm offer theo offerId
     const offer = await Offer.findById(offerId);
     if (!offer) {
       return res.status(404).json({ message: "Offer not found" });
     }
 
-    if (offer.status !== "SENT") {
+    // 2. Kiểm tra trạng thái của offer (chỉ cập nhật nếu là "PENDING")
+    if (offer.status !== "PENDING" && offer.status !== "SENT") {
       return res
         .status(400)
         .json({ message: "Offer is not in a valid state for HR update" });
     }
 
-    // Lấy thông tin recruitment để xác định candidate
+    // 3. Tìm recruitment từ offer.recruitmentId
     const recruitmentData = await Recruitment.findById(
       offer.recruitmentId
     ).lean();
@@ -274,31 +351,27 @@ exports.hrUpdateOfferStatus = async (req, res) => {
         .json({ message: "Recruitment data not found or missing candidateId" });
     }
 
-    // Lấy danh sách ứng viên đã vượt phỏng vấn
-    const candidates = await getCompletedComparisons();
-    if (!candidates || !Array.isArray(candidates) || candidates.length === 0) {
-      return res.status(404).json({ message: "No candidates found" });
-    }
-
-    // Tìm ứng viên trong danh sách
-    const candidate = candidates.find(
-      (c) => c._id?.toString() === recruitmentData.candidateId?.toString()
-    );
+    // 4. Tìm candidate từ candidateId
+    const candidate = await Candidate.findById(
+      recruitmentData.candidateId
+    ).lean();
     if (!candidate) {
       return res.status(404).json({ message: "Candidate not found" });
     }
 
+    // 5. Xử lý action (ACCEPT hoặc REJECT) và cập nhật trạng thái offer
     if (action === "ACCEPT") {
       offer.status = "ACCEPTED";
 
-      if (!candidate || !candidate.email) {
-        console.error("❌ Candidate email is missing or undefined.", candidate);
-      } else {
+      // 6. Gửi email nếu có thông tin email của ứng viên
+      if (candidate.email) {
         try {
           await sendOnboardingEmail(candidate, offer);
         } catch (emailError) {
           console.error("❌ Failed to send onboarding email:", emailError);
         }
+      } else {
+        console.error("❌ Candidate email is missing or undefined.");
       }
     } else if (action === "REJECT") {
       offer.status = "REJECTED";
@@ -306,15 +379,21 @@ exports.hrUpdateOfferStatus = async (req, res) => {
       return res.status(400).json({ message: "Invalid action" });
     }
 
+    // 7. Cập nhật thông tin người sửa đổi (nếu có)
     if (updatedBy) {
       offer.updatedBy = updatedBy;
     }
+
+    // 8. Lưu thay đổi vào bảng Offer
     await offer.save();
 
-    res
-      .status(200)
-      .json({ message: `Offer status updated to ${offer.status}`, offer });
+    // 9. Phản hồi thành công
+    res.status(200).json({
+      message: `Offer status updated to ${offer.status}`,
+      offer,
+    });
   } catch (error) {
+    console.error("❌ Error in hrUpdateOfferStatus:", error);
     res.status(500).json({ message: "Server error", error });
   }
 };
